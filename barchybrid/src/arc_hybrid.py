@@ -476,9 +476,9 @@ class ArcHybridLSTM:
                     candidates = (s for s in chain(*scores) if
                                      costs[s[1]] == 0 and (s[1] == 2 or s[0] == stack.roots[-1].relation))
 
-                    if len(list(candidates))>0:
+                    try:
                         best = max(candidates, key=itemgetter(2))
-                    else:
+                    except:
                         best = max((s for s in chain(*scores) if
                                      costs[s[1]] != 0 or (s[1] != 2 and s[0] != stack.roots[-1].relation)),
                                     key=itemgetter(2))
