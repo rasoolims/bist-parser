@@ -440,6 +440,7 @@ class ArcHybridLSTM:
 
 
     def PredictPartial(self, conll_path):
+        ninf = -float('inf')
         with open(conll_path, 'r') as conllFP:
             for iSentence, sentence in enumerate(read_conll(conllFP, False)):
                 self.Init()
