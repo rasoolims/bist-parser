@@ -444,7 +444,6 @@ class ArcHybridLSTM:
         with open(conll_path, 'r') as conllFP:
             for iSentence, sentence in enumerate(read_conll(conllFP, False)):
                 self.Init()
-                print '-----------------------'
                 sentence = sentence[1:] + [sentence[0]]
                 self.getWordEmbeddings(sentence, False)
                 stack = ParseForest([])
@@ -479,10 +478,10 @@ class ArcHybridLSTM:
                     try:
                         best = max(candidates, key=itemgetter(2))
                     except:
+                        # if the tree is non-projective; we need to do this.
                         best = max((s for s in chain(*scores) if
                                      costs[s[1]] != 0 or (s[1] != 2 and s[0] != stack.roots[-1].relation)),
                                     key=itemgetter(2))
-                    print best[0], best[1]
 
                     if best[1] == self.SHIFT:
                         stack.roots.append(buf.roots[0])
