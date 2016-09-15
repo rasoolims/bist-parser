@@ -6,6 +6,10 @@ import utils, time, random
 import numpy as np
 
 class ArcHybridLSTM:
+    SHIFT = 2
+    LEFT_ARC = 0
+    RIGHT_ARC = 1
+
     def __init__(self, words, pos, rels, w2i, options):
         self.model = Model()
         self.trainer = AdamTrainer(self.model)
@@ -258,11 +262,11 @@ class ArcHybridLSTM:
                     scores = self.__evaluate(stack, buf, False)
                     best = max(chain(*scores), key=itemgetter(2))
 
-                    if best[1] == 2:
+                    if best[1] == self.SHIFT:
                         stack.roots.append(buf.roots[0])
                         del buf.roots[0]
 
-                    elif best[1] == 0:
+                    elif best[1] == self.LEFT_ARC:
                         child = stack.roots.pop()
                         parent = buf.roots[0]
 
@@ -275,7 +279,7 @@ class ArcHybridLSTM:
                         if self.rlFlag:
                             parent.lstms[bestOp + hoffset] = child.vec
 
-                    elif best[1] == 1:
+                    elif best[1] == self.RIGHT_ARC:
                         child = stack.roots.pop()
                         parent = stack.roots[-1]
 
@@ -347,12 +351,11 @@ class ArcHybridLSTM:
                     beta = buf.roots[1:] if len(buf) > 1 else []
 
                     left_cost = (len([h for h in s1 + beta if h.id == s0[0].parent_id]) +
-                                 len([d for d in b + beta if d.parent_id == s0[0].id])) if len(scores[0]) > 0 else 1
+                                 len([d for d in b + beta if d.parent_id == s0[0].id])) if len(scores[self.LEFT_ARC]) > 0 else 1
                     right_cost = (len([h for h in b + beta if h.id == s0[0].parent_id]) +
-                                  len([d for d in b + beta if d.parent_id == s0[0].id])) if len(scores[1]) > 0 else 1
+                                  len([d for d in b + beta if d.parent_id == s0[0].id])) if len(scores[self.RIGHT_ARC]) > 0 else 1
                     shift_cost = (len([h for h in s1 + alpha if h.id == b[0].parent_id]) +
-                                  len([d for d in s0 + s1 + alpha if d.parent_id == b[0].id])) if len(
-                        scores[2]) > 0 else 1
+                                  len([d for d in s0 + s1 + alpha if d.parent_id == b[0].id])) if len(scores[self.SHIFT]) > 0 else 1
                     costs = (left_cost, right_cost, shift_cost, 1)
 
                     bestValid = max((s for s in chain(*scores) if
