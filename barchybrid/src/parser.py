@@ -33,6 +33,7 @@ if __name__ == '__main__':
     parser.add_option("--userlmost", action="store_true", dest="rlFlag", default=False)
     parser.add_option("--userl", action="store_true", dest="rlMostFlag", default=False)
     parser.add_option("--predict", action="store_true", dest="predictFlag", default=False)
+    parser.add_option("--partial", action="store_true", dest="partialFlag", default=False)
     parser.add_option("--cnn-mem", type="int", dest="cnn_mem", default=512)
 
     (options, args) = parser.parse_args()
@@ -72,7 +73,8 @@ if __name__ == '__main__':
         parser.Load(options.model)
         tespath = os.path.join(options.output, 'test_pred.conll')
         ts = time.time()
-        pred = list(parser.Predict(options.conll_test))
+
+        pred = list(parser.Predict(options.conll_test)) if (not options.partialFlag) else list(parser.PredictPartial(options.conll_test))
         te = time.time()
         utils.write_conll(tespath, pred)
         os.system('perl src/utils/eval.pl -g ' + options.conll_test + ' -s ' + tespath + ' > ' + tespath + '.txt &')
