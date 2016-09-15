@@ -473,8 +473,14 @@ class ArcHybridLSTM:
                                   len([d for d in s0 + s1 + alpha if d.parent_id == b[0].id])) if len(scores[self.SHIFT]) > 0 else 1
                     costs = (left_cost, right_cost, shift_cost, 1)
 
-                    best = max((s for s in chain(*scores) if
-                                     costs[s[1]] == 0 and (s[1] == 2 or s[0] == stack.roots[-1].relation)),
+                    candidates = (s for s in chain(*scores) if
+                                     costs[s[1]] == 0 and (s[1] == 2 or s[0] == stack.roots[-1].relation))
+
+                    if len(candidates)>0:
+                        best = max(candidates, key=itemgetter(2))
+                    else:
+                        best = max((s for s in chain(*scores) if
+                                     costs[s[1]] != 0 or (s[1] != 2 and s[0] != stack.roots[-1].relation)),
                                     key=itemgetter(2))
                     print best[0], best[1]
 
