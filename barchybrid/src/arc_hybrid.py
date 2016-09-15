@@ -367,7 +367,6 @@ class ArcHybridLSTM:
                     best = bestValid if ((not self.oracle) or (bestValid[2] - bestWrong[2] > 1.0) or (
                         bestValid[2] > bestWrong[2] and random.random() > 0.1)) else bestWrong
 
-                    print best[0], best[1]
                     if best[1] == self.SHIFT:
                         stack.roots.append(buf.roots[0])
                         del buf.roots[0]
@@ -477,6 +476,7 @@ class ArcHybridLSTM:
                     best = max((s for s in chain(*scores) if
                                      costs[s[1]] == 0 and (s[1] == 2 or s[0] == stack.roots[-1].relation)),
                                     key=itemgetter(2))
+                    print best[0], best[1]
 
                     if best[1] == self.SHIFT:
                         stack.roots.append(buf.roots[0])
