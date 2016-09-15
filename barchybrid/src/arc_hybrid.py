@@ -444,7 +444,7 @@ class ArcHybridLSTM:
         with open(conll_path, 'r') as conllFP:
             for iSentence, sentence in enumerate(read_conll(conllFP, False)):
                 self.Init()
-
+                print '***********************'
                 sentence = sentence[1:] + [sentence[0]]
                 self.getWordEmbeddings(sentence, False)
                 stack = ParseForest([])
