@@ -439,71 +439,71 @@ class ArcHybridLSTM:
         print "Loss: ", mloss / iSentence
 
 
-def PredictPartial(self, conll_path):
-    with open(conll_path, 'r') as conllFP:
-        for iSentence, sentence in enumerate(read_conll(conllFP, False)):
-            self.Init()
+    def PredictPartial(self, conll_path):
+        with open(conll_path, 'r') as conllFP:
+            for iSentence, sentence in enumerate(read_conll(conllFP, False)):
+                self.Init()
 
-            sentence = sentence[1:] + [sentence[0]]
-            self.getWordEmbeddings(sentence, False)
-            stack = ParseForest([])
-            buf = ParseForest(sentence)
+                sentence = sentence[1:] + [sentence[0]]
+                self.getWordEmbeddings(sentence, False)
+                stack = ParseForest([])
+                buf = ParseForest(sentence)
 
-            for root in sentence:
-                root.lstms = [root.vec for _ in xrange(self.nnvecs)]
+                for root in sentence:
+                    root.lstms = [root.vec for _ in xrange(self.nnvecs)]
 
-            hoffset = 1 if self.headFlag else 0
+                hoffset = 1 if self.headFlag else 0
 
-            while len(buf) > 0 or len(stack) > 1:
-                scores = self.__evaluate(stack, buf, True)
-                alpha = stack.roots[:-2] if len(stack) > 2 else []
-                s1 = [stack.roots[-2]] if len(stack) > 1 else []
-                s0 = [stack.roots[-1]] if len(stack) > 0 else []
-                b = [buf.roots[0]] if len(buf) > 0 else []
-                beta = buf.roots[1:] if len(buf) > 1 else []
-                left_cost = (len([h for h in s1 + beta if h.id == s0[0].parent_id]) +
-                             len([d for d in b + beta if d.parent_id == s0[0].id])) if len(
-                    scores[self.LEFT_ARC]) > 0 else 1
-                right_cost = (len([h for h in b + beta if h.id == s0[0].parent_id]) +
-                              len([d for d in b + beta if d.parent_id == s0[0].id])) if len(
-                    scores[self.RIGHT_ARC]) > 0 else 1
-                shift_cost = (len([h for h in s1 + alpha if h.id == b[0].parent_id]) +
-                              len([d for d in s0 + s1 + alpha if d.parent_id == b[0].id])) if len(
-                    scores[self.SHIFT]) > 0 else 1
-                costs = (left_cost, right_cost, shift_cost, 1)
-                best = max((s for s in chain(*scores) if
-                                     costs[s[1]] == 0 and (s[1] == 2 or s[0] == stack.roots[-1].relation)),
-                                    key=itemgetter(2))
+                while len(buf) > 0 or len(stack) > 1:
+                    scores = self.__evaluate(stack, buf, True)
+                    alpha = stack.roots[:-2] if len(stack) > 2 else []
+                    s1 = [stack.roots[-2]] if len(stack) > 1 else []
+                    s0 = [stack.roots[-1]] if len(stack) > 0 else []
+                    b = [buf.roots[0]] if len(buf) > 0 else []
+                    beta = buf.roots[1:] if len(buf) > 1 else []
+                    left_cost = (len([h for h in s1 + beta if h.id == s0[0].parent_id]) +
+                                 len([d for d in b + beta if d.parent_id == s0[0].id])) if len(
+                        scores[self.LEFT_ARC]) > 0 else 1
+                    right_cost = (len([h for h in b + beta if h.id == s0[0].parent_id]) +
+                                  len([d for d in b + beta if d.parent_id == s0[0].id])) if len(
+                        scores[self.RIGHT_ARC]) > 0 else 1
+                    shift_cost = (len([h for h in s1 + alpha if h.id == b[0].parent_id]) +
+                                  len([d for d in s0 + s1 + alpha if d.parent_id == b[0].id])) if len(
+                        scores[self.SHIFT]) > 0 else 1
+                    costs = (left_cost, right_cost, shift_cost, 1)
+                    best = max((s for s in chain(*scores) if
+                                         costs[s[1]] == 0 and (s[1] == 2 or s[0] == stack.roots[-1].relation)),
+                                        key=itemgetter(2))
 
-                if best[1] == self.SHIFT:
-                    stack.roots.append(buf.roots[0])
-                    del buf.roots[0]
+                    if best[1] == self.SHIFT:
+                        stack.roots.append(buf.roots[0])
+                        del buf.roots[0]
 
-                elif best[1] == self.LEFT_ARC:
-                    child = stack.roots.pop()
-                    parent = buf.roots[0]
+                    elif best[1] == self.LEFT_ARC:
+                        child = stack.roots.pop()
+                        parent = buf.roots[0]
 
-                    child.pred_parent_id = parent.id
-                    child.pred_relation = best[0]
+                        child.pred_parent_id = parent.id
+                        child.pred_relation = best[0]
 
-                    bestOp = 0
-                    if self.rlMostFlag:
-                        parent.lstms[bestOp + hoffset] = child.lstms[bestOp + hoffset]
-                    if self.rlFlag:
-                        parent.lstms[bestOp + hoffset] = child.vec
+                        bestOp = 0
+                        if self.rlMostFlag:
+                            parent.lstms[bestOp + hoffset] = child.lstms[bestOp + hoffset]
+                        if self.rlFlag:
+                            parent.lstms[bestOp + hoffset] = child.vec
 
-                elif best[1] == self.RIGHT_ARC:
-                    child = stack.roots.pop()
-                    parent = stack.roots[-1]
+                    elif best[1] == self.RIGHT_ARC:
+                        child = stack.roots.pop()
+                        parent = stack.roots[-1]
 
-                    child.pred_parent_id = parent.id
-                    child.pred_relation = best[0]
+                        child.pred_parent_id = parent.id
+                        child.pred_relation = best[0]
 
-                    bestOp = 1
-                    if self.rlMostFlag:
-                        parent.lstms[bestOp + hoffset] = child.lstms[bestOp + hoffset]
-                    if self.rlFlag:
-                        parent.lstms[bestOp + hoffset] = child.vec
+                        bestOp = 1
+                        if self.rlMostFlag:
+                            parent.lstms[bestOp + hoffset] = child.lstms[bestOp + hoffset]
+                        if self.rlFlag:
+                            parent.lstms[bestOp + hoffset] = child.vec
 
-            renew_cg()
-            yield [sentence[-1]] + sentence[:-1]
+                renew_cg()
+                yield [sentence[-1]] + sentence[:-1]
