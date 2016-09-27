@@ -2,13 +2,14 @@ from collections import Counter
 import re
 
 class ConllEntry:
-    def __init__(self, id, form, pos, parent_id=None, relation=None):
+    def __init__(self, id, form, pos, parent_id=None, relation=None, lang_id=None):
         self.id = id
         self.form = form
         self.norm = normalize(form)
         self.pos = pos.upper()
         self.parent_id = parent_id
         self.relation = relation
+        self.lang_id = lang_id
 
 class ParseForest:
     def __init__(self, sentence):
@@ -67,28 +68,31 @@ def vocab(conll_path):
 def read_conll(fh, proj):
     dropped = 0
     read = 0
-    root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot')
-    tokens = [root]
+    last_lang_id = None
+    tokens = []
     for line in fh:
         tok = line.strip().split()
         if not tok:
             if len(tokens) > 1:
+                root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot', last_lang_id)
+                tokens = [root] + tokens
                 if not proj or isProj(tokens):
                     yield tokens
                 else:
                     # print 'Non-projective sentence dropped'
                     dropped += 1
                 read += 1
-            tokens = [root]
-            id = 0
+            tokens = []
         else:
-            tokens.append(ConllEntry(int(tok[0]), tok[1], tok[3], int(tok[6]) if tok[6] != '_' else -1, tok[7]))
+            last_lang_id = tok[5]
+            tokens.append(ConllEntry(int(tok[0]), tok[1], tok[3], int(tok[6]) if tok[6] != '_' else -1, tok[7], tok[5]))
     if len(tokens) > 1:
+        root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot', last_lang_id)
+        tokens = [root] + tokens
         yield tokens
 
     print dropped, 'dropped non-projective sentences.'
     print read, 'sentences read.'
-
 
 def write_conll(fn, conll_gen):
     with open(fn, 'w') as fh:
