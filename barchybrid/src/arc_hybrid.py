@@ -87,7 +87,7 @@ class ArcHybridLSTM:
         self.model.add_lookup_parameters("word-lookup", (len(words) + 3, self.wdims))
         self.model.add_lookup_parameters("pos-lookup", (len(pos) + 3, self.pdims))
         self.model.add_lookup_parameters("rels-lookup", (len(rels), self.rdims))
-        self.model.add_lookup_parameters("langs-lookup", (len(langs), self.langdims))
+        self.model.add_lookup_parameters("lang-lookup", (len(langs), self.langdims))
 
         self.model.add_parameters("word-to-lstm", (
             self.ldims, self.wdims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
