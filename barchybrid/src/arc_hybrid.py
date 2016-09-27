@@ -245,7 +245,7 @@ class ArcHybridLSTM:
             for root in sentence:
                 root.ivec = (self.word2lstm * root.ivec) + self.word2lstmbias
                 root.vec = tanh(root.ivec)
-        return (self.model["lang-lookup"], int(self.pos[sentence[0].lang_id])) if self.langdims > 0 else None
+        return (self.model["lang-lookup"], int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None
 
     def Predict(self, conll_path):
         with open(conll_path, 'r') as conllFP:
