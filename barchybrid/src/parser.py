@@ -53,7 +53,7 @@ if __name__ == '__main__':
         print 'Finished collecting vocab'
 
         print 'Initializing blstm arc hybrid:'
-        parser = ArcHybridLSTM(words, pos, rels, w2i, options)
+        parser = ArcHybridLSTM(words, pos, rels, langs, w2i, options)
 
         for epoch in xrange(options.epochs):
             print 'Starting epoch', epoch
@@ -66,11 +66,11 @@ if __name__ == '__main__':
             parser.Save(os.path.join(options.output, options.model + str(epoch + 1)))
     else:
         with open(options.params, 'r') as paramsfp:
-            words, w2i, pos, rels, stored_opt = pickle.load(paramsfp)
+            words, w2i, pos, rels, langs, stored_opt = pickle.load(paramsfp)
 
         stored_opt.external_embedding = options.external_embedding
 
-        parser = ArcHybridLSTM(words, pos, rels, w2i, stored_opt)
+        parser = ArcHybridLSTM(words, pos, rels, langs, w2i, stored_opt)
         parser.Load(options.model)
         tespath = os.path.join(options.output, 'test_pred.conll')
         ts = time.time()
