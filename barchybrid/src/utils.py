@@ -55,15 +55,15 @@ def vocab(conll_path):
     wordsCount = Counter()
     posCount = Counter()
     relCount = Counter()
+    langCount = Counter()
 
     with open(conll_path, 'r') as conllFP:
         for sentence in read_conll(conllFP, True):
             wordsCount.update([node.norm for node in sentence])
             posCount.update([node.pos for node in sentence])
             relCount.update([node.relation for node in sentence])
-
-    return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, posCount.keys(), relCount.keys())
-
+            langCount.update([node.lang_id for node in sentence])
+    return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, posCount.keys(), relCount.keys(), langCount.keys())
 
 def read_conll(fh, proj):
     dropped = 0
@@ -99,25 +99,12 @@ def write_conll(fn, conll_gen):
         for sentence in conll_gen:
             for entry in sentence[1:]:
                 fh.write('\t'.join(
-                    [str(entry.id), entry.form, '_', entry.pos, entry.pos, '_', str(entry.pred_parent_id),
+                    [str(entry.id), entry.form, '_', entry.pos, entry.pos, entry.lang_id, str(entry.pred_parent_id),
                      entry.pred_relation, '_', '_']))
                 fh.write('\n')
             fh.write('\n')
 
-
 numberRegex = re.compile("[0-9]+|[0-9]+\\.[0-9]+|[0-9]+[0-9,]+");
-
 
 def normalize(word):
     return 'NUM' if numberRegex.match(word) else word.lower()
-
-
-cposTable = {"PRP$": "PRON", "VBG": "VERB", "VBD": "VERB", "VBN": "VERB", ",": ".", "''": ".", "VBP": "VERB",
-             "WDT": "DET", "JJ": "ADJ", "WP": "PRON", "VBZ": "VERB",
-             "DT": "DET", "#": ".", "RP": "PRT", "$": ".", "NN": "NOUN", ")": ".", "(": ".", "FW": "X", "POS": "PRT",
-             ".": ".", "TO": "PRT", "PRP": "PRON", "RB": "ADV",
-             ":": ".", "NNS": "NOUN", "NNP": "NOUN", "``": ".", "WRB": "ADV", "CC": "CONJ", "LS": "X", "PDT": "DET",
-             "RBS": "ADV", "RBR": "ADV", "CD": "NUM", "EX": "DET",
-             "IN": "ADP", "WP$": "PRON", "MD": "VERB", "NNPS": "NOUN", "JJS": "ADJ", "JJR": "ADJ", "SYM": "X",
-             "VB": "VERB", "UH": "X", "ROOT-POS": "ROOT-CPOS",
-             "-LRB-": ".", "-RRB-": "."}

@@ -16,6 +16,7 @@ if __name__ == '__main__':
     parser.add_option("--wembedding", type="int", dest="wembedding_dims", default=100)
     parser.add_option("--pembedding", type="int", dest="pembedding_dims", default=25)
     parser.add_option("--rembedding", type="int", dest="rembedding_dims", default=25)
+    parser.add_option("--lang_embedding", type="int", dest="lang_embedding_dims", default=16)
     parser.add_option("--epochs", type="int", dest="epochs", default=30)
     parser.add_option("--hidden", type="int", dest="hidden_units", default=100)
     parser.add_option("--hidden2", type="int", dest="hidden2_units", default=0)
@@ -45,10 +46,10 @@ if __name__ == '__main__':
             sys.exit()
 
         print 'Preparing vocab'
-        words, w2i, pos, rels = utils.vocab(options.conll_train)
+        words, w2i, pos, rels, langs = utils.vocab(options.conll_train)
 
         with open(os.path.join(options.output, options.params), 'w') as paramsfp:
-            pickle.dump((words, w2i, pos, rels, options), paramsfp)
+            pickle.dump((words, w2i, pos, rels, langs, options), paramsfp)
         print 'Finished collecting vocab'
 
         print 'Initializing blstm arc hybrid:'

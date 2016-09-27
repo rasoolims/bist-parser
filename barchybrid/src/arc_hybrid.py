@@ -10,7 +10,7 @@ class ArcHybridLSTM:
     LEFT_ARC = 0
     RIGHT_ARC = 1
 
-    def __init__(self, words, pos, rels, w2i, options):
+    def __init__(self, words, pos, rels, langs, w2i, options):
         self.model = Model()
         self.trainer = AdamTrainer(self.model)
         random.seed(1)
@@ -24,11 +24,13 @@ class ArcHybridLSTM:
         self.wdims = options.wembedding_dims
         self.pdims = options.pembedding_dims
         self.rdims = options.rembedding_dims
+        self.langdims = options.lang_embedding_dims
         self.layers = options.lstm_layers
         self.wordsCount = words
         self.vocab = {word: ind + 3 for word, ind in w2i.iteritems()}
         self.pos = {word: ind + 3 for ind, word in enumerate(pos)}
         self.rels = {word: ind for ind, word in enumerate(rels)}
+        self.langs = {word: ind for ind, word in enumerate(langs)}
         self.irels = rels
 
         self.headFlag = options.headFlag
@@ -85,6 +87,7 @@ class ArcHybridLSTM:
         self.model.add_lookup_parameters("word-lookup", (len(words) + 3, self.wdims))
         self.model.add_lookup_parameters("pos-lookup", (len(pos) + 3, self.pdims))
         self.model.add_lookup_parameters("rels-lookup", (len(rels), self.rdims))
+        self.model.add_lookup_parameters("langs-lookup", (len(langs), self.langdims))
 
         self.model.add_parameters("word-to-lstm", (
             self.ldims, self.wdims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
@@ -92,7 +95,7 @@ class ArcHybridLSTM:
         self.model.add_parameters("lstm-to-lstm", (self.ldims, self.ldims * self.nnvecs + self.rdims))
         self.model.add_parameters("lstm-to-lstm-bias", (self.ldims))
 
-        self.model.add_parameters("hidden-layer", (self.hidden_units, self.ldims * self.nnvecs * (self.k + 1)))
+        self.model.add_parameters("hidden-layer", (self.hidden_units, self.ldims * self.nnvecs * (self.k + 1) + self.langdims))
         self.model.add_parameters("hidden-bias", (self.hidden_units))
 
         self.model.add_parameters("hidden2-layer", (self.hidden2_units, self.hidden_units))
@@ -102,7 +105,7 @@ class ArcHybridLSTM:
                                   (3, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
         self.model.add_parameters("output-bias", (3))
 
-        self.model.add_parameters("rhidden-layer", (self.hidden_units, self.ldims * self.nnvecs * (self.k + 1)))
+        self.model.add_parameters("rhidden-layer", (self.hidden_units, self.ldims * self.nnvecs * (self.k + 1)+ self.langdims))
         self.model.add_parameters("rhidden-bias", (self.hidden_units))
 
         self.model.add_parameters("rhidden2-layer", (self.hidden2_units, self.hidden_units))
@@ -112,11 +115,11 @@ class ArcHybridLSTM:
             2 * (len(self.irels) + 0) + 1, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
         self.model.add_parameters("routput-bias", (2 * (len(self.irels) + 0) + 1))
 
-    def __evaluate(self, stack, buf, train):
+    def __evaluate(self, stack, buf, langVector, train):
         topStack = [stack.roots[-i - 1].lstms if len(stack) > i else [self.empty] for i in xrange(self.k)]
         topBuffer = [buf.roots[i].lstms if len(buf) > i else [self.empty] for i in xrange(1)]
 
-        input = concatenate(list(chain(*(topStack + topBuffer))))
+        input = concatenate(list(chain(*(topStack + topBuffer)))) + langVector
 
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
@@ -242,6 +245,7 @@ class ArcHybridLSTM:
             for root in sentence:
                 root.ivec = (self.word2lstm * root.ivec) + self.word2lstmbias
                 root.vec = tanh(root.ivec)
+        return (self.model["lang-lookup"], int(self.pos[sentence[0].lang_id])) if self.langdims > 0 else None
 
     def Predict(self, conll_path):
         with open(conll_path, 'r') as conllFP:
@@ -249,7 +253,7 @@ class ArcHybridLSTM:
                 self.Init()
 
                 sentence = sentence[1:] + [sentence[0]]
-                self.getWordEmbeddings(sentence, False)
+                langVector = self.getWordEmbeddings(sentence, False)
                 stack = ParseForest([])
                 buf = ParseForest(sentence)
 
@@ -259,7 +263,7 @@ class ArcHybridLSTM:
                 hoffset = 1 if self.headFlag else 0
 
                 while len(buf) > 0 or len(stack) > 1:
-                    scores = self.__evaluate(stack, buf, False)
+                    scores = self.__evaluate(stack, buf, langVector, False)
                     best = max(chain(*scores), key=itemgetter(2))
 
                     if best[1] == self.SHIFT:
@@ -331,7 +335,7 @@ class ArcHybridLSTM:
                     ltotal = 0
 
                 sentence = sentence[1:] + [sentence[0]]
-                self.getWordEmbeddings(sentence, True)
+                langVector = self.getWordEmbeddings(sentence, True)
                 stack = ParseForest([])
                 buf = ParseForest(sentence)
 
@@ -341,7 +345,7 @@ class ArcHybridLSTM:
                 hoffset = 1 if self.headFlag else 0
 
                 while len(buf) > 0 or len(stack) > 1:
-                    scores = self.__evaluate(stack, buf, True)
+                    scores = self.__evaluate(stack, buf, langVector, True)
                     scores.append([(None, 3, ninf, None)])
 
                     alpha = stack.roots[:-2] if len(stack) > 2 else []
@@ -445,7 +449,7 @@ class ArcHybridLSTM:
             for iSentence, sentence in enumerate(read_conll(conllFP, False)):
                 self.Init()
                 sentence = sentence[1:] + [sentence[0]]
-                self.getWordEmbeddings(sentence, False)
+                langVector = self.getWordEmbeddings(sentence, False)
                 stack = ParseForest([])
                 buf = ParseForest(sentence)
 
@@ -455,7 +459,7 @@ class ArcHybridLSTM:
                 hoffset = 1 if self.headFlag else 0
 
                 while len(buf) > 0 or len(stack) > 1:
-                    scores = self.__evaluate(stack, buf, True)
+                    scores = self.__evaluate(stack, buf, langVector,True)
                     scores.append([(None, 3, ninf, None)])
 
                     alpha = stack.roots[:-2] if len(stack) > 2 else []
