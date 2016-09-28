@@ -249,6 +249,7 @@ class ArcHybridLSTM:
         print self.langs
         print sentence[0].lang_id, self.langs[sentence[0].lang_id], int(self.langs[sentence[0].lang_id])
         langVec = lookup(self.model["lang-lookup"], int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None
+        langVec = concatenate(filter(None, [langVec]))
         return langVec
 
     def Predict(self, conll_path):
