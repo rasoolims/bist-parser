@@ -118,9 +118,9 @@ class ArcHybridLSTM:
     def __evaluate(self, stack, buf, langVector, train):
         topStack = [stack.roots[-i - 1].lstms if len(stack) > i else [self.empty] for i in xrange(self.k)]
         topBuffer = [buf.roots[i].lstms if len(buf) > i else [self.empty] for i in xrange(1)]
+        topBuffer.append(langVector)
 
         input = concatenate(list(chain(*(topStack + topBuffer))))
-        input = concatenate(list(chain(*(input + langVector))))
 
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
@@ -241,12 +241,13 @@ class ArcHybridLSTM:
                     rroot.bbvec = bbackward.output()
                 for root in sentence:
                     root.vec = concatenate([root.bfvec, root.bbvec])
-
         else:
             for root in sentence:
                 root.ivec = (self.word2lstm * root.ivec) + self.word2lstmbias
                 root.vec = tanh(root.ivec)
-        return (self.model["lang-lookup"], int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None
+        langVec = (self.model["lang-lookup"], int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None
+        print langVec
+        return langVec
 
     def Predict(self, conll_path):
         with open(conll_path, 'r') as conllFP:
