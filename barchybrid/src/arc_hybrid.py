@@ -119,7 +119,7 @@ class ArcHybridLSTM:
         topStack = [stack.roots[-i - 1].lstms if len(stack) > i else [self.empty] for i in xrange(self.k)]
         topBuffer = [buf.roots[i].lstms if len(buf) > i else [self.empty] for i in xrange(1)]
 
-        input = concatenate(list(chain(*(topStack + topBuffer)))+langVector)
+        input = concatenate(list(chain(*(topStack + topBuffer)))+[langVector])
 
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
