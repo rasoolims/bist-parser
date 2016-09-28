@@ -119,7 +119,7 @@ class ArcHybridLSTM:
         topStack = [stack.roots[-i - 1].lstms if len(stack) > i else [self.empty] for i in xrange(self.k)]
         topBuffer = [buf.roots[i].lstms if len(buf) > i else [self.empty] for i in xrange(1)]
         print langVector
-        print type(langVector)
+        print concatenate(langVector)
         input = concatenate(list(chain(*(topStack + topBuffer+langVector))))
 
         if self.hidden2_units > 0:
