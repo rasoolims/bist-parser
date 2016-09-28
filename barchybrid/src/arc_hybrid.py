@@ -245,7 +245,7 @@ class ArcHybridLSTM:
             for root in sentence:
                 root.ivec = (self.word2lstm * root.ivec) + self.word2lstmbias
                 root.vec = tanh(root.ivec)
-        langVec = list(chain(*((self.model["lang-lookup"], int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None)))
+        langVec = lookup(self.model["lang-lookup"], int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None
         print langVec
         return langVec
 
