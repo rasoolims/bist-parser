@@ -69,6 +69,7 @@ def densityLevel(sentence):
             else:
                 i = j+1
                 break
+        i+=1
         stretchLen = l if l > stretchLen else stretchLen
 
     if percent>= 0.8 or stretchLen>=7:
@@ -98,7 +99,6 @@ def read_conll(fh, proj, denseLevel = 5):
     read = 0
     root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot')
     tokens = [root]
-
 
     for line in fh:
         tok = line.strip().split()
