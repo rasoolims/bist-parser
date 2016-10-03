@@ -50,6 +50,12 @@ def isProj(sentence):
 
     return len(forest.roots) == 1
 
+def isPartial(sentence):
+    for entry in sentence:
+        if entry.parent_id == -1:
+            return True
+    return False
+
 def vocab(conll_path):
     wordsCount = Counter()
     posCount = Counter()
@@ -106,14 +112,3 @@ numberRegex = re.compile("[0-9]+|[0-9]+\\.[0-9]+|[0-9]+[0-9,]+");
 
 def normalize(word):
     return 'NUM' if numberRegex.match(word) else word.lower()
-
-
-cposTable = {"PRP$": "PRON", "VBG": "VERB", "VBD": "VERB", "VBN": "VERB", ",": ".", "''": ".", "VBP": "VERB",
-             "WDT": "DET", "JJ": "ADJ", "WP": "PRON", "VBZ": "VERB",
-             "DT": "DET", "#": ".", "RP": "PRT", "$": ".", "NN": "NOUN", ")": ".", "(": ".", "FW": "X", "POS": "PRT",
-             ".": ".", "TO": "PRT", "PRP": "PRON", "RB": "ADV",
-             ":": ".", "NNS": "NOUN", "NNP": "NOUN", "``": ".", "WRB": "ADV", "CC": "CONJ", "LS": "X", "PDT": "DET",
-             "RBS": "ADV", "RBR": "ADV", "CD": "NUM", "EX": "DET",
-             "IN": "ADP", "WP$": "PRON", "MD": "VERB", "NNPS": "NOUN", "JJS": "ADJ", "JJR": "ADJ", "SYM": "X",
-             "VB": "VERB", "UH": "X", "ROOT-POS": "ROOT-CPOS",
-             "-LRB-": ".", "-RRB-": "."}
