@@ -59,7 +59,8 @@ if __name__ == '__main__':
 
         for epoch in xrange(options.epochs):
             print 'Starting epoch', epoch
-            dense_level = 3 if epoch>options.dense1_t else (2 if epoch>options.dense5_t else (1 if epoch>options.dense7_t else 0))
+            dense_level = 3 if epoch>=options.dense1_t else (2 if epoch>=options.dense5_t else (1 if epoch>=options.dense7_t else 0))
+            print 'Dense level',dense_level
             parser.Train(options.conll_train, dense_level)
             devpath = os.path.join(options.output, 'dev_epoch_' + str(epoch + 1) + '.conll')
             if options.conll_dev!='':
