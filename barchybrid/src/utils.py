@@ -56,6 +56,29 @@ def isPartial(sentence):
             return True
     return False
 
+def densityLevel(sentence):
+    percent = float(sum([1 for entry in sentence if entry.parent_id != -1]))/len(sentence)
+
+    stretchLen = 0
+    i = 0
+    while i<len(sentence):
+        l = 0
+        for j in range(i,len(sentence)):
+            if sentence[j].parent_id != -1:
+                l+=1
+            else:
+                i = j+1
+                break
+        stretchLen = l if l > stretchLen else stretchLen
+
+    if percent>= 0.8 or stretchLen>=7:
+        return 1
+    elif percent>=.8 or stretchLen>=5:
+        return 2
+    elif percent>=0.8 or stretchLen>=1:
+        return 3
+    return 4
+
 def vocab(conll_path):
     wordsCount = Counter()
     posCount = Counter()
