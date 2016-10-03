@@ -295,7 +295,7 @@ class ArcHybridLSTM:
                 renew_cg()
                 yield [sentence[-1]] + sentence[:-1]
 
-    def Train(self, conll_path):
+    def Train(self, conll_path, dense_level):
         mloss = 0.0
         errors = 0
         batch = 0
@@ -311,7 +311,7 @@ class ArcHybridLSTM:
         start = time.time()
 
         with open(conll_path, 'r') as conllFP:
-            shuffledData = list(read_conll(conllFP, True))
+            shuffledData = list(read_conll(conllFP, True, dense_level))
             random.shuffle(shuffledData)
 
             errs = []

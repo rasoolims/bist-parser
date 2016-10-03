@@ -93,16 +93,20 @@ def vocab(conll_path):
     return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, posCount.keys(), relCount.keys())
 
 
-def read_conll(fh, proj):
+def read_conll(fh, proj, denseLevel = 5):
     dropped = 0
     read = 0
     root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot')
     tokens = [root]
+
+
     for line in fh:
         tok = line.strip().split()
         if not tok:
             if len(tokens) > 1:
-                if not proj or isProj(tokens):
+                density = densityLevel(tokens) if isPartial(tokens) else 0
+
+                if (not proj or isProj(tokens)) and density<=denseLevel:
                     yield tokens
                 else:
                     # print 'Non-projective sentence dropped'

@@ -17,6 +17,9 @@ if __name__ == '__main__':
     parser.add_option("--pembedding", type="int", dest="pembedding_dims", default=25)
     parser.add_option("--rembedding", type="int", dest="rembedding_dims", default=25)
     parser.add_option("--epochs", type="int", dest="epochs", default=30)
+    parser.add_option("--dense7_t", type="int", dest="dense7_t", default=1)
+    parser.add_option("--dense5_t", type="int", dest="dense5_t", default=2)
+    parser.add_option("--dense1_t", type="int", dest="dense1_t", default=3)
     parser.add_option("--hidden", type="int", dest="hidden_units", default=100)
     parser.add_option("--hidden2", type="int", dest="hidden2_units", default=0)
     parser.add_option("--k", type="int", dest="window", default=3)
@@ -56,7 +59,8 @@ if __name__ == '__main__':
 
         for epoch in xrange(options.epochs):
             print 'Starting epoch', epoch
-            parser.Train(options.conll_train)
+            dense_level = 3 if epoch>options.dense1_t else (2 if epoch>options.dense5_t else (1 if epoch>options.dense7_t else 0))
+            parser.Train(options.conll_train, dense_level)
             devpath = os.path.join(options.output, 'dev_epoch_' + str(epoch + 1) + '.conll')
             if options.conll_dev!='':
                 utils.write_conll(devpath, parser.Predict(options.conll_dev))
