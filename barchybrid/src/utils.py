@@ -43,10 +43,19 @@ def isProj(sentence):
                 unassigned[forest.roots[i + 1].id] -= 1
                 forest.Attach(i + 1, i)
                 break
-            if forest.roots[i + 1].parent_id == forest.roots[i].id and unassigned[forest.roots[i + 1].id] == 0:
+            elif forest.roots[i + 1].parent_id == forest.roots[i].id and unassigned[forest.roots[i + 1].id] == 0:
                 unassigned[forest.roots[i].id] -= 1
                 forest.Attach(i, i + 1)
                 break
+            elif forest.roots[i].parent_id == -1:
+                unassigned[forest.roots[i + 1].id] -= 1
+                forest.Attach(i + 1, i)
+                break
+            elif forest.roots[i+1].parent_id == -1:
+                unassigned[forest.roots[i].id] -= 1
+                forest.Attach(i, i + 1)
+                break
+
 
     return len(forest.roots) == 1
 
