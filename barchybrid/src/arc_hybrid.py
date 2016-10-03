@@ -202,7 +202,7 @@ class ArcHybridLSTM:
             try:
                 root.posvec = lookup(self.model["pos-lookup"], int(self.pos[root.pos])) if self.pdims > 0 else None
             except:
-                oot.posvec = lookup(self.model["pos-lookup"],1)
+                root.posvec = lookup(self.model["pos-lookup"],1)
 
             if self.external_embedding is not None:
                 if not dropFlag and random.random() < 0.5:
