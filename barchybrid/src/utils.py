@@ -33,6 +33,9 @@ class ParseForest:
         child.pred_parent_id = parent.id
         del self.roots[child_index]
 
+    def Remove(self, index):
+        del self.roots[index]
+
 def isProj(sentence):
     forest = ParseForest(sentence)
     unassigned = {entry.id: sum([1 for pentry in sentence if pentry.parent_id == entry.id]) for entry in sentence}
@@ -48,14 +51,11 @@ def isProj(sentence):
                 forest.Attach(i, i + 1)
                 break
             elif forest.roots[i].parent_id == -1:
-                unassigned[forest.roots[i + 1].id] -= 1
-                forest.Attach(i + 1, i)
+                forest.Remove(i)
                 break
             elif forest.roots[i+1].parent_id == -1:
-                unassigned[forest.roots[i].id] -= 1
-                forest.Attach(i, i + 1)
+                forest.Remove(i+1)
                 break
-
 
     return len(forest.roots) == 1
 
@@ -83,7 +83,7 @@ def densityLevel(sentence):
 
     if percent>= 0.8 or stretchLen>=7:
         return 1
-    elif percent>=.8 or stretchLen>=5:
+    elif percent>=0.8 or stretchLen>=5:
         return 2
     elif percent>=0.8 or stretchLen>=1:
         return 3
