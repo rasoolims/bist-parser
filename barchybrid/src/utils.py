@@ -2,7 +2,7 @@ from collections import Counter
 import re
 
 class ConllEntry:
-    def __init__(self, id, form, pos, parent_id=None, relation=None, lang_id=None):
+    def __init__(self, id, form, pos, parent_id=None, relation=None, lang_id=None, weight= 1.0):
         self.id = id
         self.form = form
         self.norm = normalize(form)
@@ -10,6 +10,7 @@ class ConllEntry:
         self.parent_id = parent_id
         self.relation = relation
         self.lang_id = lang_id
+        self.weight = weight
 
 class ParseForest:
     def __init__(self, sentence):
@@ -69,12 +70,13 @@ def read_conll(fh, proj):
     dropped = 0
     read = 0
     last_lang_id = None
+    last_weight = 1
     tokens = []
     for line in fh:
         tok = line.strip().split()
         if not tok:
             if len(tokens) > 1:
-                root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot', last_lang_id)
+                root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot', last_lang_id, last_weight)
                 tokens = [root] + tokens
                 if not proj or isProj(tokens):
                     yield tokens
@@ -85,9 +87,15 @@ def read_conll(fh, proj):
             tokens = []
         else:
             last_lang_id = tok[5]
-            tokens.append(ConllEntry(int(tok[0]), tok[1], tok[3], int(tok[6]) if tok[6] != '_' else -1, tok[7], tok[5]))
+            weight = 1
+            try:
+                weight = int(tok[8])
+            except:
+                weight = 1
+            last_weight = weight
+            tokens.append(ConllEntry(int(tok[0]), tok[1], tok[3], int(tok[6]) if tok[6] != '_' else -1, tok[7], tok[5], weight))
     if len(tokens) > 1:
-        root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot', last_lang_id)
+        root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot', last_lang_id, last_weight)
         tokens = [root] + tokens
         yield tokens
 
