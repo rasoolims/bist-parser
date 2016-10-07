@@ -401,7 +401,8 @@ class ArcHybridLSTM:
                             parent.lstms[bestOp + hoffset] = child.vec
 
                     if bestValid[2] < bestWrong[2] + 1.0:
-                        loss = bestWrong[3] - bestValid[3]
+                        # added the actual weight for loss here
+                        loss = sentence[0].weight * (bestWrong[3] - bestValid[3])
                         mloss += 1.0 + bestWrong[2] - bestValid[2]
                         eloss += 1.0 + bestWrong[2] - bestValid[2]
                         errs.append(loss)
