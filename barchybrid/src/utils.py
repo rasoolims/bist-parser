@@ -89,7 +89,7 @@ def read_conll(fh, proj):
             last_lang_id = tok[5]
             weight = 1
             try:
-                weight = int(tok[8])
+                weight = float(tok[8])
             except:
                 weight = 1
             last_weight = weight
