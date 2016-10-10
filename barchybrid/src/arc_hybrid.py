@@ -407,6 +407,8 @@ class ArcHybridLSTM:
                         mloss += 1.0 + bestWrong[2] - bestValid[2]
                         eloss += 1.0 + bestWrong[2] - bestValid[2]
                         errs.append(loss)
+                    else:
+                        print 'not there, weight', sentence[0].weight
 
                     if best[1] != 2 and (
                                     child.pred_parent_id != child.parent_id or child.pred_relation != child.relation):
