@@ -402,13 +402,10 @@ class ArcHybridLSTM:
 
                     if bestValid[2] < bestWrong[2] + 1.0:
                         # added the actual weight for loss here
-                        print 'weight',sentence[0].weight
-                        loss = sentence[0].weight * (bestWrong[3] - bestValid[3])
+                        loss = scalarInput(sentence[0].weight) * (bestWrong[3] - bestValid[3])
                         mloss += 1.0 + bestWrong[2] - bestValid[2]
                         eloss += 1.0 + bestWrong[2] - bestValid[2]
                         errs.append(loss)
-                    else:
-                        print 'not there, weight', sentence[0].weight
 
                     if best[1] != 2 and (
                                     child.pred_parent_id != child.parent_id or child.pred_relation != child.relation):
