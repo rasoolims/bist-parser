@@ -325,7 +325,7 @@ class ArcHybridLSTM:
             for iSentence, sentence in enumerate(shuffledData):
                 if iSentence % 100 == 0 and iSentence != 0:
                     print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Errors:', (float(
-                        eerrors)) / etotal, 'Labeled Errors:', (float(lerrors) / etotal), 'Time', time.time() - start, sentence[0].weight
+                        eerrors)) / etotal, 'Labeled Errors:', (float(lerrors) / etotal), 'Time', time.time() - start, 'weight',sentence[0].weight
                     start = time.time()
                     eerrors = 0
                     eloss = 0.0
