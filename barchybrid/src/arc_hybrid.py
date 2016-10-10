@@ -402,6 +402,7 @@ class ArcHybridLSTM:
 
                     if bestValid[2] < bestWrong[2] + 1.0:
                         # added the actual weight for loss here
+                        print 'weight',sentence[0].weight
                         loss = sentence[0].weight * (bestWrong[3] - bestValid[3])
                         mloss += 1.0 + bestWrong[2] - bestValid[2]
                         eloss += 1.0 + bestWrong[2] - bestValid[2]
