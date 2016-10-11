@@ -202,7 +202,7 @@ class SRLLSTM:
                     root.evec = lookup(self.model["extrn-lookup"], 0)
             else:
                 root.evec = None
-            root.ivec = concatenate(filter(None, [root.wordvec, root.lemmaNorm, root.posvec, root.evec]))
+            root.ivec = concatenate(filter(None, [root.wordvec, root.lemmaVec, root.posvec, root.evec]))
 
         if self.blstmFlag:
             forward = self.surfaceBuilders[0].initial_state()
