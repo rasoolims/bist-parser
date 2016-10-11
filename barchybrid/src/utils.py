@@ -36,17 +36,15 @@ def vocab(conll_path):
     relCount = Counter()
     semRelCount = Counter()
 
-    with codecs.open(conll_path, 'r') as conllFP:
-        for sentence in read_conll(conllFP):
-            wordsCount.update([node.norm for node in sentence])
-            lemma_count.update([node.lemma for node in sentence])
-            posCount.update([node.pos for node in sentence])
-            relCount.update([node.relation for node in sentence])
-            for node in sentence:
-                for pred in node.predicateList.values():
-                    if pred!='_':
-                        semRelCount.append(pred)
-
+    for sentence in read_conll(conll_path):
+        wordsCount.update([node.norm for node in sentence])
+        lemma_count.update([node.lemma for node in sentence])
+        posCount.update([node.pos for node in sentence])
+        relCount.update([node.relation for node in sentence])
+        for node in sentence:
+            for pred in node.predicateList.values():
+                if pred!='_':
+                    semRelCount.append(pred)
 
     return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, lemma_count, {w: i for i, w in enumerate(lemma_count.keys())}, posCount.keys(), relCount.keys(), semRelCount.keys())
 

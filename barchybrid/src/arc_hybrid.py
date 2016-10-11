@@ -234,7 +234,7 @@ class SRLLSTM:
                 root.vec = tanh(root.ivec)
 
     def Predict(self, conll_path):
-        for iSentence, sentence in enumerate(read_conll(conllFP)):
+        for iSentence, sentence in enumerate(read_conll(conll_path)):
             self.Init()
             self.getWordEmbeddings(sentence.entries, False)
             for root in sentence.entries:
@@ -255,7 +255,7 @@ class SRLLSTM:
         etotal = 0
         ninf = -float('inf')
         start = time.time()
-        shuffledData = list(read_conll(conllFP))
+        shuffledData = list(read_conll(conll_path))
         random.shuffle(shuffledData)
         errs = []
         self.Init()
