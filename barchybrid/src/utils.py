@@ -51,7 +51,6 @@ def vocab(conll_path):
     return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, lemma_count, {w: i for i, w in enumerate(lemma_count.keys())}, posCount.keys(), relCount.keys(), semRelCount.keys())
 
 def read_conll(fh):
-    print fh
     sentences = codecs.open(fh, 'r').read().strip().split('\n\n')
     read = 0
     for sentence in sentences:
