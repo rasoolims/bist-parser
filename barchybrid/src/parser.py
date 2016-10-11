@@ -50,6 +50,9 @@ if __name__ == '__main__':
             pickle.dump((words, w2i, lemmas, l2i, pos, rels, options), paramsfp)
         print 'Finished collecting vocab'
 
+        # todo remove this when not needed
+        sys.exit(0)
+
         print 'Initializing blstm arc hybrid:'
         parser = SRLLSTM(words, pos, rels, w2i, options)
 
