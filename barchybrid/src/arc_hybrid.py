@@ -234,18 +234,16 @@ class SRLLSTM:
                 root.vec = tanh(root.ivec)
 
     def Predict(self, conll_path):
-        with open(conll_path, 'r') as conllFP:
-            for iSentence, sentence in enumerate(read_conll(conllFP)):
-                self.Init()
-                self.getWordEmbeddings(sentence.entries, False)
-                for root in sentence.entries:
-                    root.lstms = [root.vec for _ in xrange(self.nnvecs)]
-
-                for p in range(len(sentence.predicates)):
-                    predicate = sentence.predicates[p]
-                    for arg in range(1, len(sentence.entries)):
-                        scores = self.__evaluate(sentence.entries, predicate, arg)
-                        sentence.entries[arg].predicateList[p] = max(chain(*scores), key=itemgetter(2))[0]
+        for iSentence, sentence in enumerate(read_conll(conllFP)):
+            self.Init()
+            self.getWordEmbeddings(sentence.entries, False)
+            for root in sentence.entries:
+                root.lstms = [root.vec for _ in xrange(self.nnvecs)]
+            for p in range(len(sentence.predicates)):
+                predicate = sentence.predicates[p]
+                for arg in range(1, len(sentence.entries)):
+                    scores = self.__evaluate(sentence.entries, predicate, arg)
+                    sentence.entries[arg].predicateList[p] = max(chain(*scores), key=itemgetter(2))[0]
                 renew_cg()
                 yield  sentence
 
@@ -257,48 +255,43 @@ class SRLLSTM:
         etotal = 0
         ninf = -float('inf')
         start = time.time()
-        with open(conll_path, 'r') as conllFP:
-            shuffledData = list(read_conll(conllFP))
-            random.shuffle(shuffledData)
-            errs = []
-            self.Init()
-            for iSentence, sentence in enumerate(shuffledData):
-                if iSentence % 100 == 0 and iSentence != 0:
-                    print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Errors:', (float(
+        shuffledData = list(read_conll(conllFP))
+        random.shuffle(shuffledData)
+        errs = []
+        self.Init()
+        for iSentence, sentence in enumerate(shuffledData):
+            if iSentence % 100 == 0 and iSentence != 0:
+                print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Errors:', (float(
                         eerrors)) / etotal, 'Labeled Errors:', (float(lerrors) / etotal), 'Time', time.time() - start
-                    start = time.time()
-                    eerrors = 0
-                    eloss = 0.0
-                    etotal = 0
-                    lerrors = 0
+                start = time.time()
+                eerrors = 0
+                eloss = 0.0
+                etotal = 0
+                lerrors = 0
+            self.getWordEmbeddings(sentence.entries, True)
+            for root in sentence.entries:
+                root.lstms = [root.vec for _ in xrange(self.nnvecs)]
+            for p in range(len(sentence.predicates)):
+                predicate = sentence.predicates[p]
+                for arg in range(1, len(sentence.entries)):
+                    scores = self.__evaluate(sentence.entries, predicate, arg)
+                    best = max(chain(*scores), key=itemgetter(2))
+                    gold = sentence.entries[arg].predicateList[p]
+                    predicted = best[0]
 
-                self.getWordEmbeddings(sentence.entries, True)
-                for root in sentence.entries:
-                    root.lstms = [root.vec for _ in xrange(self.nnvecs)]
-
-                for p in range(len(sentence.predicates)):
-                    predicate = sentence.predicates[p]
-                    for arg in range(1, len(sentence.entries)):
-                        scores = self.__evaluate(sentence.entries, predicate, arg)
-                        best = max(chain(*scores), key=itemgetter(2))
-                        gold = sentence.entries[arg].predicateList[p]
-                        predicted = best[0]
-
-                        if gold!=predicted:
-                            loss = best - gold
-                            mloss += 1.0 + best - gold
-                            eloss += 1.0 + best - gold
-                            errs.append(loss)
-
-                        if len(errs) > 50:  # or True:
-                            eerrs = esum(errs)
-                            scalar_loss = eerrs.scalar_value()
-                            eerrs.backward()
-                            self.trainer.update()
-                            errs = []
-
-                            renew_cg()
-                            self.Init()
+                    if gold!=predicted:
+                        loss = best - gold
+                        mloss += 1.0 + best - gold
+                        eloss += 1.0 + best - gold
+                        errs.append(loss)
+                    if len(errs) > 50:
+                        eerrs = esum(errs)
+                        scalar_loss = eerrs.scalar_value()
+                        eerrs.backward()
+                        self.trainer.update()
+                        errs = []
+                        renew_cg()
+                        self.Init()
 
         if len(errs) > 0:
             eerrs = (esum(errs))  # * (1.0/(float(len(errs))))
