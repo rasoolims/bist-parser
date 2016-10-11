@@ -12,6 +12,7 @@ class ConllEntry:
         self.form = form
         self.lemma = lemma
         self.norm = normalize(form)
+        self.lemmaNorm = normalize(lemma)
         self.pos = pos.upper()
         self.parent_id = parent_id
         self.relation = relation
@@ -33,15 +34,21 @@ def vocab(conll_path):
     lemma_count = Counter()
     posCount = Counter()
     relCount = Counter()
+    semRelCount = Counter()
 
     with open(conll_path, 'r') as conllFP:
-        for sentence in read_conll(conllFP, True):
+        for sentence in read_conll(conllFP):
             wordsCount.update([node.norm for node in sentence])
             lemma_count.update([node.lemma for node in sentence])
             posCount.update([node.pos for node in sentence])
             relCount.update([node.relation for node in sentence])
+            for node in sentence:
+                for pred in node.predicateList.values():
+                    if pred!='_':
+                        semRelCount.append(pred)
 
-    return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, lemma_count, {w: i for i, w in enumerate(lemma_count.keys())}, posCount.keys(), relCount.keys())
+
+    return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, lemma_count, {w: i for i, w in enumerate(lemma_count.keys())}, posCount.keys(), relCount.keys(), semRelCount.keys())
 
 def read_conll(fh):
     sentences = open(fh, 'r').read().strip().split('\n\n')

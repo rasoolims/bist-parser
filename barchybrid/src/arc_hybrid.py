@@ -1,12 +1,12 @@
 from pycnn import *
-from utils import ParseForest, read_conll, write_conll
+from utils import read_conll
 from operator import itemgetter
 from itertools import chain
 import utils, time, random
 import numpy as np
 
 class SRLLSTM:
-    def __init__(self, words, pos, rels, w2i, options):
+    def __init__(self, words, lemmas, pos, depRels, rels, w2i, options):
         self.model = Model()
         self.trainer = AdamTrainer(self.model)
         random.seed(1)
@@ -18,12 +18,16 @@ class SRLLSTM:
         self.oracle = options.oracle
         self.ldims = options.lstm_dims * 2
         self.wdims = options.wembedding_dims
+        self.lemDims = options.lem_embedding_dims
         self.pdims = options.pembedding_dims
+        self.deprdims = options.deprembedding_dims
         self.rdims = options.rembedding_dims
         self.layers = options.lstm_layers
         self.wordsCount = words
         self.vocab = {word: ind + 3 for word, ind in w2i.iteritems()}
+        self.lemmas = {lemma: ind + 3 for lemma, ind in l2i.iteritems()}
         self.pos = {word: ind + 3 for ind, word in enumerate(pos)}
+        self.deprels = {word: ind for ind, word in enumerate(depRels)}
         self.rels = {word: ind for ind, word in enumerate(rels)}
         self.irels = rels
 
@@ -53,7 +57,7 @@ class SRLLSTM:
 
             print 'Load external embedding. Vector dimensions', self.edim
 
-        dims = self.wdims + self.pdims + (self.edim if self.external_embedding is not None else 0)
+        dims = self.wdims + self.lemDims + self.pdims + (self.edim if self.external_embedding is not None else 0)
         self.blstmFlag = options.blstmFlag
         self.bibiFlag = options.bibiFlag
 
@@ -74,16 +78,22 @@ class SRLLSTM:
         self.hidden2_units = options.hidden2_units
         self.vocab['*PAD*'] = 1
         self.pos['*PAD*'] = 1
+        self.lemmas['*PAD*'] = 1
+        self.deprels['*PAD*'] = 1
 
         self.vocab['*INITIAL*'] = 2
         self.pos['*INITIAL*'] = 2
+        self.lemmas['*INITIAL*'] = 2
+        self.deprels['*INITIAL*'] = 2
 
         self.model.add_lookup_parameters("word-lookup", (len(words) + 3, self.wdims))
+        self.model.add_lookup_parameters("lemma-lookup", (len(lemmas) + 3, self.lemDims))
         self.model.add_lookup_parameters("pos-lookup", (len(pos) + 3, self.pdims))
+        self.model.add_lookup_parameters("deprel-lookup", (len(depRels), self.deprdims))
         self.model.add_lookup_parameters("rels-lookup", (len(rels), self.rdims))
 
         self.model.add_parameters("word-to-lstm", (
-            self.ldims, self.wdims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
+            self.ldims, self.wdims + self.lemDims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
         self.model.add_parameters("word-to-lstm-bias", (self.ldims))
         self.model.add_parameters("lstm-to-lstm", (self.ldims, self.ldims * self.nnvecs + self.rdims))
         self.model.add_parameters("lstm-to-lstm-bias", (self.ldims))
@@ -95,8 +105,8 @@ class SRLLSTM:
         self.model.add_parameters("hidden2-bias", (self.hidden2_units))
 
         self.model.add_parameters("output-layer",
-                                  (3, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
-        self.model.add_parameters("output-bias", (3))
+                                  (2, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
+        self.model.add_parameters("output-bias", (2))
 
         self.model.add_parameters("rhidden-layer", (self.hidden_units, self.ldims * self.nnvecs * (self.k + 1)))
         self.model.add_parameters("rhidden-bias", (self.hidden_units))
@@ -108,11 +118,11 @@ class SRLLSTM:
             2 * (len(self.irels) + 0) + 1, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
         self.model.add_parameters("routput-bias", (2 * (len(self.irels) + 0) + 1))
 
-    def __evaluate(self, stack, buf, train):
-        topStack = [stack.roots[-i - 1].lstms if len(stack) > i else [self.empty] for i in xrange(self.k)]
-        topBuffer = [buf.roots[i].lstms if len(buf) > i else [self.empty] for i in xrange(1)]
+    def __evaluate(self, sentence, pred_index, arg_index):
+        pred_vec = sentence.roots[pred_index].lstms
+        arg_vec = sentence.roots[arg_index].lstms
 
-        input = concatenate(list(chain(*(topStack + topBuffer))))
+        input = concatenate(list(chain(*(pred_vec + arg_vec))))
 
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
@@ -130,28 +140,10 @@ class SRLLSTM:
 
         uscrs0 = uscrs[0]
         uscrs1 = uscrs[1]
-        uscrs2 = uscrs[2]
-        if train:
-            output0 = output[0]
-            output1 = output[1]
-            output2 = output[2]
-            ret = [[(rel, 0, scrs[1 + j * 2] + uscrs1, routput[1 + j * 2] + output1) for j, rel in
-                    enumerate(self.irels)] if len(stack) > 0 and len(buf) > 0 else [],
-                   [(rel, 1, scrs[2 + j * 2] + uscrs2, routput[2 + j * 2] + output2) for j, rel in
-                    enumerate(self.irels)] if len(stack) > 1 else [],
-                   [(None, 2, scrs[0] + uscrs0, routput[0] + output0)] if len(buf) > 0 else []]
-        else:
-            s1, r1 = max(zip(scrs[1::2], self.irels))
-            s2, r2 = max(zip(scrs[2::2], self.irels))
-            s1 += uscrs1
-            s2 += uscrs2
-            ret = [[(r1, 0, s1)] if len(stack) > 0 and len(buf) > 0 else [],
-                   [(r2, 1, s2)] if len(stack) > 1 else [],
-                   [(None, 2, scrs[0] + uscrs0)] if len(buf) > 0 else []]
-        return ret
-        # return [ [ (rel, 0, scrs[1 + j * 2 + 0] + uscrs[1], routput[1 + j * 2 + 0] + output[1]) for j, rel in enumerate(self.irels) ] if len(stack) > 0 and len(buf) > 0 else [],
-        #         [ (rel, 1, scrs[1 + j * 2 + 1] + uscrs[2], routput[1 + j * 2 + 1] + output[2]) for j, rel in enumerate(self.irels) ] if len(stack) > 1 else [],  
-        #         [ (None, 2, scrs[0] + uscrs[0], routput[0] + output[0]) ] if len(buf) > 0 else [] ]
+        output0 = output[0]
+        output1 = output[1]
+        return  [[(rel, 0, scrs[1 + j * 2] + uscrs1, routput[1 + j * 2] + output1) for j, rel in enumerate(self.irels)],
+                   [('_', 1, scrs[0] + uscrs0, routput[0] + output0)]]
 
     def Save(self, filename):
         self.model.save(filename)
@@ -184,10 +176,11 @@ class SRLLSTM:
 
         evec = lookup(self.model["extrn-lookup"], 1) if self.external_embedding is not None else None
         paddingWordVec = lookup(self.model["word-lookup"], 1)
+        paddingLemmaVec = lookup(self.model["lemma-lookup"], 1)
         paddingPosVec = lookup(self.model["pos-lookup"], 1) if self.pdims > 0 else None
 
         paddingVec = tanh(
-            self.word2lstm * concatenate(filter(None, [paddingWordVec, paddingPosVec, evec])) + self.word2lstmbias)
+            self.word2lstm * concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])) + self.word2lstmbias)
         self.empty = paddingVec if self.nnvecs == 1 else concatenate([paddingVec for _ in xrange(self.nnvecs)])
 
     def getWordEmbeddings(self, sentence, train):
@@ -195,6 +188,7 @@ class SRLLSTM:
             c = float(self.wordsCount.get(root.norm, 0))
             dropFlag = not train or (random.random() < (c / (0.25 + c)))
             root.wordvec = lookup(self.model["word-lookup"], int(self.vocab.get(root.norm, 0)) if dropFlag else 0)
+            root.lemmaVec = lookup(self.model["lemma-lookup"], int(self.vocab.get(root.lemmaNorm, 0)) if dropFlag else 0)
             root.posvec = lookup(self.model["pos-lookup"], int(self.pos[root.pos])) if self.pdims > 0 else None
 
             if self.external_embedding is not None:
@@ -208,7 +202,7 @@ class SRLLSTM:
                     root.evec = lookup(self.model["extrn-lookup"], 0)
             else:
                 root.evec = None
-            root.ivec = concatenate(filter(None, [root.wordvec, root.posvec, root.evec]))
+            root.ivec = concatenate(filter(None, [root.wordvec, root.lemmaNorm, root.posvec, root.evec]))
 
         if self.blstmFlag:
             forward = self.surfaceBuilders[0].initial_state()
@@ -241,80 +235,33 @@ class SRLLSTM:
 
     def Predict(self, conll_path):
         with open(conll_path, 'r') as conllFP:
-            for iSentence, sentence in enumerate(read_conll(conllFP, False)):
+            for iSentence, sentence in enumerate(read_conll(conllFP)):
                 self.Init()
-
-                sentence = sentence[1:] + [sentence[0]]
-                self.getWordEmbeddings(sentence, False)
-                stack = ParseForest([])
-                buf = ParseForest(sentence)
-
-                for root in sentence:
+                self.getWordEmbeddings(sentence.entries, False)
+                for root in sentence.entries:
                     root.lstms = [root.vec for _ in xrange(self.nnvecs)]
 
-                hoffset = 1 if self.headFlag else 0
-
-                while len(buf) > 0 or len(stack) > 1:
-                    scores = self.__evaluate(stack, buf, False)
-                    best = max(chain(*scores), key=itemgetter(2))
-
-                    if best[1] == 2:
-                        stack.roots.append(buf.roots[0])
-                        del buf.roots[0]
-
-                    elif best[1] == 0:
-                        child = stack.roots.pop()
-                        parent = buf.roots[0]
-
-                        child.pred_parent_id = parent.id
-                        child.pred_relation = best[0]
-
-                        bestOp = 0
-                        if self.rlMostFlag:
-                            parent.lstms[bestOp + hoffset] = child.lstms[bestOp + hoffset]
-                        if self.rlFlag:
-                            parent.lstms[bestOp + hoffset] = child.vec
-
-                    elif best[1] == 1:
-                        child = stack.roots.pop()
-                        parent = stack.roots[-1]
-
-                        child.pred_parent_id = parent.id
-                        child.pred_relation = best[0]
-
-                        bestOp = 1
-                        if self.rlMostFlag:
-                            parent.lstms[bestOp + hoffset] = child.lstms[bestOp + hoffset]
-                        if self.rlFlag:
-                            parent.lstms[bestOp + hoffset] = child.vec
-
+                for p in range(len(sentence.predicates)):
+                    predicate = sentence.predicates[p]
+                    for arg in range(1, len(sentence.entries)):
+                        scores = self.__evaluate(sentence.entries, predicate, arg)
+                        sentence.entries[arg].predicateList[p] = max(chain(*scores), key=itemgetter(2))[0]
                 renew_cg()
-                yield [sentence[-1]] + sentence[:-1]
+                yield  sentence
 
     def Train(self, conll_path):
         mloss = 0.0
-        errors = 0
-        batch = 0
         eloss = 0.0
         eerrors = 0
         lerrors = 0
         etotal = 0
-        ltotal = 0
         ninf = -float('inf')
-
-        hoffset = 1 if self.headFlag else 0
-
         start = time.time()
-
         with open(conll_path, 'r') as conllFP:
-            shuffledData = list(read_conll(conllFP, True))
+            shuffledData = list(read_conll(conllFP))
             random.shuffle(shuffledData)
-
             errs = []
-            eeloss = 0.0
-
             self.Init()
-
             for iSentence, sentence in enumerate(shuffledData):
                 if iSentence % 100 == 0 and iSentence != 0:
                     print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Errors:', (float(
@@ -324,112 +271,40 @@ class SRLLSTM:
                     eloss = 0.0
                     etotal = 0
                     lerrors = 0
-                    ltotal = 0
 
-                sentence = sentence[1:] + [sentence[0]]
-                self.getWordEmbeddings(sentence, True)
-                stack = ParseForest([])
-                buf = ParseForest(sentence)
-
-                for root in sentence:
+                self.getWordEmbeddings(sentence.entries, True)
+                for root in sentence.entries:
                     root.lstms = [root.vec for _ in xrange(self.nnvecs)]
 
-                hoffset = 1 if self.headFlag else 0
+                for p in range(len(sentence.predicates)):
+                    predicate = sentence.predicates[p]
+                    for arg in range(1, len(sentence.entries)):
+                        scores = self.__evaluate(sentence.entries, predicate, arg)
+                        best = max(chain(*scores), key=itemgetter(2))
+                        gold = sentence.entries[arg].predicateList[p]
+                        predicted = best[0]
 
-                while len(buf) > 0 or len(stack) > 1:
-                    scores = self.__evaluate(stack, buf, True)
-                    scores.append([(None, 3, ninf, None)])
+                        if gold!=predicted:
+                            loss = best - gold
+                            mloss += 1.0 + best - gold
+                            eloss += 1.0 + best - gold
+                            errs.append(loss)
 
-                    alpha = stack.roots[:-2] if len(stack) > 2 else []
-                    s1 = [stack.roots[-2]] if len(stack) > 1 else []
-                    s0 = [stack.roots[-1]] if len(stack) > 0 else []
-                    b = [buf.roots[0]] if len(buf) > 0 else []
-                    beta = buf.roots[1:] if len(buf) > 1 else []
+                        if len(errs) > 50:  # or True:
+                            eerrs = esum(errs)
+                            scalar_loss = eerrs.scalar_value()
+                            eerrs.backward()
+                            self.trainer.update()
+                            errs = []
 
-                    left_cost = (len([h for h in s1 + beta if h.id == s0[0].parent_id]) +
-                                 len([d for d in b + beta if d.parent_id == s0[0].id])) if len(scores[0]) > 0 else 1
-                    right_cost = (len([h for h in b + beta if h.id == s0[0].parent_id]) +
-                                  len([d for d in b + beta if d.parent_id == s0[0].id])) if len(scores[1]) > 0 else 1
-                    shift_cost = (len([h for h in s1 + alpha if h.id == b[0].parent_id]) +
-                                  len([d for d in s0 + s1 + alpha if d.parent_id == b[0].id])) if len(
-                        scores[2]) > 0 else 1
-                    costs = (left_cost, right_cost, shift_cost, 1)
-
-                    bestValid = max((s for s in chain(*scores) if
-                                     costs[s[1]] == 0 and (s[1] == 2 or s[0] == stack.roots[-1].relation)),
-                                    key=itemgetter(2))
-                    bestWrong = max((s for s in chain(*scores) if
-                                     costs[s[1]] != 0 or (s[1] != 2 and s[0] != stack.roots[-1].relation)),
-                                    key=itemgetter(2))
-                    best = bestValid if ((not self.oracle) or (bestValid[2] - bestWrong[2] > 1.0) or (
-                        bestValid[2] > bestWrong[2] and random.random() > 0.1)) else bestWrong
-
-                    if best[1] == 2:
-                        stack.roots.append(buf.roots[0])
-                        del buf.roots[0]
-
-                    elif best[1] == 0:
-                        child = stack.roots.pop()
-                        parent = buf.roots[0]
-
-                        child.pred_parent_id = parent.id
-                        child.pred_relation = best[0]
-
-                        bestOp = 0
-                        if self.rlMostFlag:
-                            parent.lstms[bestOp + hoffset] = child.lstms[bestOp + hoffset]
-                        if self.rlFlag:
-                            parent.lstms[bestOp + hoffset] = child.vec
-
-                    elif best[1] == 1:
-                        child = stack.roots.pop()
-                        parent = stack.roots[-1]
-
-                        child.pred_parent_id = parent.id
-                        child.pred_relation = best[0]
-
-                        bestOp = 1
-                        if self.rlMostFlag:
-                            parent.lstms[bestOp + hoffset] = child.lstms[bestOp + hoffset]
-                        if self.rlFlag:
-                            parent.lstms[bestOp + hoffset] = child.vec
-
-                    if bestValid[2] < bestWrong[2] + 1.0:
-                        loss = bestWrong[3] - bestValid[3]
-                        mloss += 1.0 + bestWrong[2] - bestValid[2]
-                        eloss += 1.0 + bestWrong[2] - bestValid[2]
-                        errs.append(loss)
-
-                    if best[1] != 2 and (
-                                    child.pred_parent_id != child.parent_id or child.pred_relation != child.relation):
-                        lerrors += 1
-                        if child.pred_parent_id != child.parent_id:
-                            errors += 1
-                            eerrors += 1
-
-                    etotal += 1
-
-                if len(errs) > 50:  # or True:
-                    # eerrs = ((esum(errs)) * (1.0/(float(len(errs)))))
-                    eerrs = esum(errs)
-                    scalar_loss = eerrs.scalar_value()
-                    eerrs.backward()
-                    self.trainer.update()
-                    errs = []
-                    lerrs = []
-
-                    renew_cg()
-                    self.Init()
+                            renew_cg()
+                            self.Init()
 
         if len(errs) > 0:
             eerrs = (esum(errs))  # * (1.0/(float(len(errs))))
             eerrs.scalar_value()
             eerrs.backward()
             self.trainer.update()
-
-            errs = []
-            lerrs = []
-
             renew_cg()
 
         self.trainer.update_epoch()

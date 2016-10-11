@@ -14,8 +14,10 @@ if __name__ == '__main__':
     parser.add_option("--extrn", dest="external_embedding", help="External embeddings", metavar="FILE")
     parser.add_option("--model", dest="model", help="Load/Save model file", metavar="FILE", default="barchybrid.model")
     parser.add_option("--wembedding", type="int", dest="wembedding_dims", default=100)
+    parser.add_option("--lembedding", type="int", dest="lem_embedding_dims", default=100)
     parser.add_option("--pembedding", type="int", dest="pembedding_dims", default=25)
     parser.add_option("--rembedding", type="int", dest="rembedding_dims", default=25)
+    parser.add_option("--deprembedding", type="int", dest="deprembedding_dims", default=25)
     parser.add_option("--epochs", type="int", dest="epochs", default=30)
     parser.add_option("--hidden", type="int", dest="hidden_units", default=100)
     parser.add_option("--hidden2", type="int", dest="hidden2_units", default=0)
@@ -44,17 +46,15 @@ if __name__ == '__main__':
             sys.exit()
 
         print 'Preparing vocab'
-        words, w2i, lemmas, l2i, pos, rels = utils.vocab(options.conll_train)
+        words, w2i, lemmas, l2i, pos, rels, semRels = utils.vocab(options.conll_train)
 
         with open(os.path.join(options.output, options.params), 'w') as paramsfp:
-            pickle.dump((words, w2i, lemmas, l2i, pos, rels, options), paramsfp)
+            pickle.dump((words, w2i, lemmas, l2i, pos, rels,semRels, options), paramsfp)
         print 'Finished collecting vocab'
 
-        # todo remove this when not needed
-        sys.exit(0)
 
         print 'Initializing blstm arc hybrid:'
-        parser = SRLLSTM(words, pos, rels, w2i, options)
+        parser = SRLLSTM(words, lemmas, pos, rels, semRels, w2i, options)
 
         for epoch in xrange(options.epochs):
             print 'Starting epoch', epoch
@@ -67,11 +67,11 @@ if __name__ == '__main__':
             parser.Save(os.path.join(options.output, options.model + str(epoch + 1)))
     else:
         with open(options.params, 'r') as paramsfp:
-            words, w2i, pos, rels, stored_opt = pickle.load(paramsfp)
+            words, w2i, lemmas, l2i, pos, rels, semRels, stored_opt = pickle.load(paramsfp)
 
         stored_opt.external_embedding = options.external_embedding
 
-        parser = SRLLSTM(words, pos, rels, w2i, stored_opt)
+        parser = SRLLSTM(words, lemmas, pos, rels, semRels, w2i, stored_opt)
         parser.Load(options.model)
         tespath = os.path.join(options.output, 'test_pred.conll')
         ts = time.time()
