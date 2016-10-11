@@ -261,8 +261,11 @@ class SRLLSTM:
         self.Init()
         for iSentence, sentence in enumerate(shuffledData):
             if iSentence % 1 == 0:
-                print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Errors:', (float(
+                try:
+                    print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Errors:', (float(
                         eerrors)) / etotal, 'Labeled Errors:', (float(lerrors) / etotal), 'Time', time.time() - start
+                except:
+                    print 'sentence', iSentence
                 start = time.time()
                 eerrors = 0
                 eloss = 0.0
