@@ -1,5 +1,5 @@
 from collections import Counter
-import re
+import re, codecs
 
 class ConllStruct:
     def __init__(self, entries, predicates):
@@ -36,7 +36,7 @@ def vocab(conll_path):
     relCount = Counter()
     semRelCount = Counter()
 
-    with open(conll_path, 'r') as conllFP:
+    with codecs.open(conll_path, 'r') as conllFP:
         for sentence in read_conll(conllFP):
             wordsCount.update([node.norm for node in sentence])
             lemma_count.update([node.lemma for node in sentence])
@@ -51,7 +51,8 @@ def vocab(conll_path):
     return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, lemma_count, {w: i for i, w in enumerate(lemma_count.keys())}, posCount.keys(), relCount.keys(), semRelCount.keys())
 
 def read_conll(fh):
-    sentences = open(fh, 'r').read().strip().split('\n\n')
+    print fh
+    sentences = codecs.open(fh, 'r').read().strip().split('\n\n')
     read = 0
     for sentence in sentences:
         words = []
@@ -73,7 +74,7 @@ def read_conll(fh):
     print read, 'sentences read.'
 
 def write_conll(fn, conll_structs):
-    with open(fn, 'w') as fh:
+    with codecs.open(fn, 'w') as fh:
         for conll_struct in conll_structs:
             for entry in conll_struct.entries:
                 fh.write(entry)
