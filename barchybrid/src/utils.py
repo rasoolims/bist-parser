@@ -41,7 +41,7 @@ def vocab(conll_path):
         lemma_count.update([node.lemma for node in sentence.entries])
         posCount.update([node.pos for node in sentence.entries])
         relCount.update([node.relation for node in sentence.entries])
-        for node in sentence:
+        for node in sentence.entries:
             for pred in node.predicateList.values():
                 if pred!='_':
                     semRelCount.append(pred)
