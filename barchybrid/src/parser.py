@@ -1,5 +1,5 @@
 from optparse import OptionParser
-from arc_hybrid import ArcHybridLSTM
+from arc_hybrid import SRLLSTM
 import pickle, utils, os, time, sys
 
 if __name__ == '__main__':
@@ -44,14 +44,14 @@ if __name__ == '__main__':
             sys.exit()
 
         print 'Preparing vocab'
-        words, w2i, pos, rels = utils.vocab(options.conll_train)
+        words, w2i, lemmas, l2i, pos, rels = utils.vocab(options.conll_train)
 
         with open(os.path.join(options.output, options.params), 'w') as paramsfp:
-            pickle.dump((words, w2i, pos, rels, options), paramsfp)
+            pickle.dump((words, w2i, lemmas, l2i, pos, rels, options), paramsfp)
         print 'Finished collecting vocab'
 
         print 'Initializing blstm arc hybrid:'
-        parser = ArcHybridLSTM(words, pos, rels, w2i, options)
+        parser = SRLLSTM(words, pos, rels, w2i, options)
 
         for epoch in xrange(options.epochs):
             print 'Starting epoch', epoch
@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
         stored_opt.external_embedding = options.external_embedding
 
-        parser = ArcHybridLSTM(words, pos, rels, w2i, stored_opt)
+        parser = SRLLSTM(words, pos, rels, w2i, stored_opt)
         parser.Load(options.model)
         tespath = os.path.join(options.output, 'test_pred.conll')
         ts = time.time()

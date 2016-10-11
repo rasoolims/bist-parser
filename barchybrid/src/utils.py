@@ -1,119 +1,79 @@
 from collections import Counter
-import re
+import re, codecs
+
+class ConllStruct:
+    def __init__(self, entries, predicates):
+        self.entries = entries
+        self.predicates = predicates
 
 class ConllEntry:
-    def __init__(self, id, form, pos, parent_id=None, relation=None):
+    def __init__(self, id, form, lemma, pos, sense = None, parent_id=None, relation=None, predicateList=None):
         self.id = id
         self.form = form
+        self.lemma = lemma
         self.norm = normalize(form)
         self.pos = pos.upper()
         self.parent_id = parent_id
         self.relation = relation
+        self.predicateList = predicateList
+        self.sense = sense
 
-class ParseForest:
-    def __init__(self, sentence):
-        self.roots = list(sentence)
-
-        for root in self.roots:
-            root.children = []
-            root.scores = None
-            root.parent = None
-            root.pred_parent_id = 0  # None
-            root.pred_relation = 'rroot'  # None
-            root.vecs = None
-            root.lstms = None
-
-    def __len__(self):
-        return len(self.roots)
-
-    def Attach(self, parent_index, child_index):
-        parent = self.roots[parent_index]
-        child = self.roots[child_index]
-
-        child.pred_parent_id = parent.id
-        del self.roots[child_index]
-
-def isProj(sentence):
-    forest = ParseForest(sentence)
-    unassigned = {entry.id: sum([1 for pentry in sentence if pentry.parent_id == entry.id]) for entry in sentence}
-
-    for _ in xrange(len(sentence)):
-        for i in xrange(len(forest.roots) - 1):
-            if forest.roots[i].parent_id == forest.roots[i + 1].id and unassigned[forest.roots[i].id] == 0:
-                unassigned[forest.roots[i + 1].id] -= 1
-                forest.Attach(i + 1, i)
-                break
-            if forest.roots[i + 1].parent_id == forest.roots[i].id and unassigned[forest.roots[i + 1].id] == 0:
-                unassigned[forest.roots[i].id] -= 1
-                forest.Attach(i, i + 1)
-                break
-
-    return len(forest.roots) == 1
+    def __str__(self):
+        entry_list = [str(self.id), self.form, self.lemma, self.lemma, self.pos, self.pos, '_', '_',
+                      str(self.pred_parent_id),
+                      str(self.pred_parent_id), self.pred_relation, self.pred_relation,
+                      '_' if self.sense == '_' else 'Y',
+                      self.sense, '_']
+        for p in self.predicateList.values():
+            entry_list.append(p)
+        return '\t'.join(entry_list)
 
 def vocab(conll_path):
     wordsCount = Counter()
+    lemma_count = Counter()
     posCount = Counter()
     relCount = Counter()
 
     with open(conll_path, 'r') as conllFP:
         for sentence in read_conll(conllFP, True):
             wordsCount.update([node.norm for node in sentence])
+            lemma_count.update([node.lemma for node in sentence])
             posCount.update([node.pos for node in sentence])
             relCount.update([node.relation for node in sentence])
 
-    return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, posCount.keys(), relCount.keys())
+    return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, lemma_count, {w: i for i, w in enumerate(lemma_count.keys())}, posCount.keys(), relCount.keys())
 
-
-def read_conll(fh, proj):
-    dropped = 0
+def read_conll(fh):
+    sentences = open(fh, 'r').read().strip().split('\n\n')
     read = 0
-    root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot')
-    tokens = [root]
-    for line in fh:
-        tok = line.strip().split()
-        if not tok:
-            if len(tokens) > 1:
-                if not proj or isProj(tokens):
-                    yield tokens
-                else:
-                    # print 'Non-projective sentence dropped'
-                    dropped += 1
-                read += 1
-            tokens = [root]
-            id = 0
-        else:
-            tokens.append(ConllEntry(int(tok[0]), tok[1], tok[3], int(tok[6]) if tok[6] != '_' else -1, tok[7]))
-    if len(tokens) > 1:
-        yield tokens
+    for sentence in sentences:
+        words = []
+        words.append(ConllEntry(0, 'ROOT','ROOT', 'ROOT', 'ROOT'))
+        predicates = list()
+        entries = sentence.strip().split('\n')
+        for entry in entries:
+            spl = entry.split('\t')
+            predicateList = dict()
+            if spl[12]=='Y':
+                predicates.append(int(spl[0]))
 
-    print dropped, 'dropped non-projective sentences.'
+            for i in range(14, len(spl)):
+                predicateList[i - 14] = spl[i]
+
+            words.append(ConllEntry(int(spl[0]), spl[1], spl[3], spl[5], spl[13], int(spl[9]), spl[11], predicateList))
+        read+=1
+        yield  ConllStruct(words, predicates)
     print read, 'sentences read.'
 
-
-def write_conll(fn, conll_gen):
-    with open(fn, 'w') as fh:
-        for sentence in conll_gen:
-            for entry in sentence[1:]:
-                fh.write('\t'.join(
-                    [str(entry.id), entry.form, '_', entry.pos, entry.pos, '_', str(entry.pred_parent_id),
-                     entry.pred_relation, '_', '_']))
+def write_conll(fn, conll_structs):
+    with codecs.open(fn, 'w') as fh:
+        for conll_struct in conll_structs:
+            for entry in conll_struct.entries:
+                fh.write(entry)
                 fh.write('\n')
             fh.write('\n')
 
-
 numberRegex = re.compile("[0-9]+|[0-9]+\\.[0-9]+|[0-9]+[0-9,]+");
-
 
 def normalize(word):
     return 'NUM' if numberRegex.match(word) else word.lower()
-
-
-cposTable = {"PRP$": "PRON", "VBG": "VERB", "VBD": "VERB", "VBN": "VERB", ",": ".", "''": ".", "VBP": "VERB",
-             "WDT": "DET", "JJ": "ADJ", "WP": "PRON", "VBZ": "VERB",
-             "DT": "DET", "#": ".", "RP": "PRT", "$": ".", "NN": "NOUN", ")": ".", "(": ".", "FW": "X", "POS": "PRT",
-             ".": ".", "TO": "PRT", "PRP": "PRON", "RB": "ADV",
-             ":": ".", "NNS": "NOUN", "NNP": "NOUN", "``": ".", "WRB": "ADV", "CC": "CONJ", "LS": "X", "PDT": "DET",
-             "RBS": "ADV", "RBR": "ADV", "CD": "NUM", "EX": "DET",
-             "IN": "ADP", "WP$": "PRON", "MD": "VERB", "NNPS": "NOUN", "JJS": "ADJ", "JJR": "ADJ", "SYM": "X",
-             "VB": "VERB", "UH": "X", "ROOT-POS": "ROOT-CPOS",
-             "-LRB-": ".", "-RRB-": "."}

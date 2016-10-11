@@ -5,7 +5,7 @@ from itertools import chain
 import utils, time, random
 import numpy as np
 
-class ArcHybridLSTM:
+class SRLLSTM:
     def __init__(self, words, pos, rels, w2i, options):
         self.model = Model()
         self.trainer = AdamTrainer(self.model)
