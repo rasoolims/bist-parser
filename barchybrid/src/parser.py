@@ -1,5 +1,5 @@
 from optparse import OptionParser
-from arc_hybrid import SRLLSTM
+from srl import SRLLSTM
 import pickle, utils, os, time, sys
 
 if __name__ == '__main__':
@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
 
         print 'Initializing blstm arc hybrid:'
-        parser = SRLLSTM(words, lemmas, pos, rels, semRels, w2i, options)
+        parser = SRLLSTM(words, lemmas, pos, rels, semRels, w2i, l2i, options)
 
         for epoch in xrange(options.epochs):
             print 'Starting epoch', epoch
@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
         stored_opt.external_embedding = options.external_embedding
 
-        parser = SRLLSTM(words, lemmas, pos, rels, semRels, w2i, stored_opt)
+        parser = SRLLSTM(words, lemmas, pos, rels, semRels, w2i, l2i, stored_opt)
         parser.Load(options.model)
         tespath = os.path.join(options.output, 'test_pred.conll')
         ts = time.time()
