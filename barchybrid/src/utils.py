@@ -46,7 +46,7 @@ def vocab(conll_path):
                 continue
             for pred in node.predicateList.values():
                 if pred!='_':
-                    semRelCount.append(pred)
+                    semRelCount.update(pred)
 
     return (wordsCount, {w: i for i, w in enumerate(wordsCount.keys())}, lemma_count, {w: i for i, w in enumerate(lemma_count.keys())}, posCount.keys(), relCount.keys(), semRelCount.keys())
 
