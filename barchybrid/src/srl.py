@@ -260,7 +260,7 @@ class SRLLSTM:
         errs = []
         self.Init()
         for iSentence, sentence in enumerate(shuffledData):
-            if iSentence % 1 == 0 and iSentence != 0:
+            if iSentence % 1 == 0:
                 print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Errors:', (float(
                         eerrors)) / etotal, 'Labeled Errors:', (float(lerrors) / etotal), 'Time', time.time() - start
                 start = time.time()
