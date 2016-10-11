@@ -119,8 +119,8 @@ class SRLLSTM:
         self.model.add_parameters("routput-bias", (2 * (len(self.irels) + 0) + 1))
 
     def __evaluate(self, sentence, pred_index, arg_index):
-        pred_vec = sentence.roots[pred_index].lstms
-        arg_vec = sentence.roots[arg_index].lstms
+        pred_vec = sentence[pred_index].lstms
+        arg_vec = sentence[arg_index].lstms
 
         input = concatenate(list(chain(*(pred_vec + arg_vec))))
 
