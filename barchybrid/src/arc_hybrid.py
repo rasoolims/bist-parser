@@ -174,6 +174,7 @@ class ArcHybridLSTM:
 
         self.hid2Layer = parameter(self.model["hidden2-layer"])
         self.hidLayer = parameter(self.model["hidden-layer"])
+        dropout(self.hidLayer, 0.5)
         self.outLayer = parameter(self.model["output-layer"])
 
         self.hid2Bias = parameter(self.model["hidden2-bias"])
