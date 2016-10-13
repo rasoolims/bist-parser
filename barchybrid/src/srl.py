@@ -118,6 +118,7 @@ class SRLLSTM:
         self.model.add_parameters("routput-bias", (2 * (len(self.irels) + 0) + 1))
 
     def __evaluate(self, sentence, pred_index, arg_index):
+        print 'start eval'
         pred_vec = [sentence.entries[pred_index].lstms]
         arg_vec = [sentence.entries[arg_index].lstms]
         pred_head = sentence.head(pred_index)
@@ -125,7 +126,10 @@ class SRLLSTM:
         arg_head = sentence.head(arg_index)
         arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]]
 
+        print 'start concat'
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
+
+        print 'start output'
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
                 self.rhidLayer * input + self.rhidBias)) + self.routBias)
@@ -144,6 +148,7 @@ class SRLLSTM:
         uscrs1 = uscrs[1]
         output0 = output[0]
         output1 = output[1]
+        print 'start return'
         return  [[(rel, 0, scrs[1 + j * 2] + uscrs1, routput[1 + j * 2] + output1) for j, rel in enumerate(self.irels)],
                    [('_', 1, scrs[0] + uscrs0, routput[0] + output0)]]
 
