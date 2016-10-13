@@ -97,7 +97,6 @@ class SRLLSTM:
         self.model.add_parameters("lstm-to-lstm", (self.ldims, self.ldims * self.nnvecs + self.rdims))
         self.model.add_parameters("lstm-to-lstm-bias", (self.ldims))
 
-        print self.ldims, self.nnvecs, self.k
         self.model.add_parameters("hidden-layer", (self.hidden_units, self.ldims * self.nnvecs * self.k ))
         self.model.add_parameters("hidden-bias", (self.hidden_units))
 
@@ -287,6 +286,8 @@ class SRLLSTM:
                     best = max(chain(*scores), key=itemgetter(2))
                     gold = sentence.entries[arg].predicateList[p]
                     predicted = best[0]
+                    print gold
+                    print scores
 
                     if gold != predicted:
                         loss = best[1] - gold
