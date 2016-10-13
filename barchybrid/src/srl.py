@@ -144,7 +144,7 @@ class SRLLSTM:
             output = (self.outLayer * self.activation(
                 self.hid2Bias + self.hid2Layer * self.activation(self.hidLayer * input + self.hidBias)) + self.outBias)
         else:
-            print 'creating routput'
+            print 'creating output'
             output = (self.outLayer * self.activation(self.hidLayer * input + self.hidBias) + self.outBias)
 
         print 'created final output'
