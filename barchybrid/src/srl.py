@@ -298,6 +298,13 @@ class SRLLSTM:
                                     gold_score = item[3]
                                     g_s = item[2]
                                     break
+
+                        if gold != '_' and predicted!='_':
+                            lerrors+=1
+                        else:
+                            lerrors += 1
+                            eerrors += 1
+
                         loss = best[3] - gold_score
                         mloss += 1.0 + best[2] - g_s
                         eloss += 1.0 + best[2] - g_s
