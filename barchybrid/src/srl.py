@@ -138,7 +138,18 @@ class SRLLSTM:
                 self.rhidLayer * input + self.rhidBias)) + self.routBias)
         else:
             print 'creating routput'
-            routput = (self.routLayer * self.activation(self.rhidLayer * input + self.rhidBias) + self.routBias)
+            print 'e1'
+            e1 = self.rhidLayer * input
+            print 'e2'
+            e2 = e1 +  self.rhidBias
+            print 'e3'
+            e3 = self.activation(e2)
+            print 'e4'
+            e4 = self.routLayer * e3
+            print 'e5'
+            routput = e4 + self.routBias
+
+            #routput = (self.routLayer * self.activation(self.rhidLayer * input + self.rhidBias) + self.routBias)
 
         if self.hidden2_units > 0:
             output = (self.outLayer * self.activation(
