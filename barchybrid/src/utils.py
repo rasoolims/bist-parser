@@ -47,6 +47,7 @@ def vocab(conll_path):
         for node in sentence.entries:
             if node.predicateList == None:
                 continue
+            print node.predicateList.values()
             for pred in node.predicateList.values():
                 if pred!='_':
                     semRelCount.update(pred)
