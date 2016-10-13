@@ -290,7 +290,7 @@ class SRLLSTM:
                     if gold != predicted:
                         gold_score = 0
                         if gold == '_':
-                            gold_score = scores[1][3]
+                            gold_score = scores[1][0][3]
                         else:
                             for item in scores[0]:
                                 if item[0]==gold:
