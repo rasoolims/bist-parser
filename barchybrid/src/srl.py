@@ -201,11 +201,8 @@ class SRLLSTM:
         for root in sentence:
             c = float(self.wordsCount.get(root.norm, 0))
             dropFlag = not train or (random.random() < (c / (0.25 + c)))
-            print 'word lookup', root.norm
             root.wordvec = lookup(self.model["word-lookup"], int(self.vocab.get(root.norm, 0)) if dropFlag else 0)
-            print 'lenmma lookup', root.lemmaNorm
             root.lemmaVec = lookup(self.model["lemma-lookup"], int(self.vocab.get(root.lemmaNorm, 0)) if dropFlag else 0)
-            print 'pos lookup', root.pos
             root.posvec = lookup(self.model["pos-lookup"], int(self.pos[root.pos])) if self.pdims > 0 else None
 
             if self.external_embedding is not None:
