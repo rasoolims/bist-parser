@@ -294,7 +294,7 @@ class SRLLSTM:
                                 if item[0]==gold:
                                     gold_score = item[3]
                                     break
-                        gold_score = scalarInput(gold_score)
+                        gold_score = gold_score
                         loss = best[3] - gold_score
                         mloss += 1.0 + best[3] - gold_score
                         eloss += 1.0 + best[3] - gold_score
