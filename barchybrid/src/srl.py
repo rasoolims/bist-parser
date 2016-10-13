@@ -125,7 +125,7 @@ class SRLLSTM:
         arg_head = sentence.head(arg_index)
         arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]]
 
-        print pred_index,arg_index,pred_head,arg_head
+        print sentence.entries[pred_index].norm,sentence.entries[arg_index].norm,sentence.entries[pred_head].norm,sentence.entries[arg_head].norm
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
 
         if self.hidden2_units > 0:
@@ -288,7 +288,7 @@ class SRLLSTM:
 
                     if gold != predicted:
                         gold_score = 0
-                        g_sc = 0
+                        g_s = 0
                         if gold == '_':
                             gold_score = scores[1][0][3]
                             g_s = scores[1][0][2]
