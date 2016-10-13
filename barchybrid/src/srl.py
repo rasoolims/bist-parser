@@ -97,7 +97,7 @@ class SRLLSTM:
         self.model.add_parameters("lstm-to-lstm", (self.ldims, self.ldims * self.nnvecs + self.rdims))
         self.model.add_parameters("lstm-to-lstm-bias", (self.ldims))
 
-        print self.ldims * self.nnvecs * self.k
+        print self.ldims, self.nnvecs, self.k
         self.model.add_parameters("hidden-layer", (self.hidden_units, self.ldims * self.nnvecs * self.k ))
         self.model.add_parameters("hidden-bias", (self.hidden_units))
 
