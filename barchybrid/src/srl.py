@@ -287,17 +287,19 @@ class SRLLSTM:
 
                     if gold != predicted:
                         gold_score = 0
+                        g_sc = 0
                         if gold == '_':
                             gold_score = scores[1][0][3]
+                            g_s = scores[1][0][2]
                         else:
                             for item in scores[0]:
                                 if item[0]==gold:
                                     gold_score = item[3]
+                                    g_s = item[2]
                                     break
-                        print type(best[3]), type(gold_score)
                         loss = best[3] - gold_score
-                        mloss += 1.0 + best[3] - gold_score
-                        eloss += 1.0 + best[3] - gold_score
+                        mloss += 1.0 + best[2] - g_s
+                        eloss += 1.0 + best[2] - g_s
                         errs.append(loss)
                     if len(errs) > 50:
                         print 'backward'
