@@ -144,11 +144,12 @@ class SRLLSTM:
             output = (self.outLayer * self.activation(self.hidLayer * input + self.hidBias) + self.outBias)
 
         print 'pre-return'
+        print output
+        print routput
+        print output.value()
+        print routput.value()
         scrs, uscrs = routput.value(), output.value()
 
-        print uscrs
-        print scrs
-        print output
         uscrs0 = uscrs[0]
         uscrs1 = uscrs[1]
         output0 = output[0]
