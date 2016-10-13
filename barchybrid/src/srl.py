@@ -278,9 +278,10 @@ class SRLLSTM:
             self.getWordEmbeddings(sentence.entries, True)
             for root in sentence.entries:
                 root.lstms = [root.vec for _ in xrange(self.nnvecs)]
-            for p in range(len(sentence.predicates)):
+            for p in range(1, len(sentence.predicates)):
                 predicate = sentence.predicates[p]
                 for arg in range(1, len(sentence.entries)):
+                    print p, arg
                     scores = self.__evaluate(sentence, predicate, arg)
                     best = max(chain(*scores), key=itemgetter(2))
                     gold = sentence.entries[arg].predicateList[p]
@@ -292,6 +293,7 @@ class SRLLSTM:
                         eloss += 1.0 + best - gold
                         errs.append(loss)
                     if len(errs) > 50:
+                        print 'backward'
                         eerrs = esum(errs)
                         scalar_loss = eerrs.scalar_value()
                         eerrs.backward()
