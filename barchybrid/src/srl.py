@@ -286,13 +286,16 @@ class SRLLSTM:
                     best = max(chain(*scores), key=itemgetter(2))
                     gold = sentence.entries[arg].predicateList[p]
                     predicted = best[0]
+                    print '>>>'
                     print gold
                     print scores
+                    print best
+                    print '>>>'
 
                     if gold != predicted:
-                        loss = best[1] - gold
-                        mloss += 1.0 + best[1] - gold
-                        eloss += 1.0 + best[1] - gold
+                        loss = best[2] - gold
+                        mloss += 1.0 + best[2] - gold
+                        eloss += 1.0 + best[2] - gold
                         errs.append(loss)
                     if len(errs) > 50:
                         print 'backward'
