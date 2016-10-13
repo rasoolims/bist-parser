@@ -130,6 +130,7 @@ class SRLLSTM:
         print pred_index, arg_index, pred_head, arg_head
         print 'creating input'
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
+        print len(input)
         print 'created input'
 
         if self.hidden2_units > 0:
