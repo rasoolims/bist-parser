@@ -34,7 +34,7 @@ class SRLLSTM:
         self.headFlag = options.headFlag
         self.rlMostFlag = options.rlMostFlag
         self.rlFlag = options.rlFlag
-        self.k = options.window
+        self.k = 4
 
         self.nnvecs = (1 if self.headFlag else 0) + (2 if self.rlFlag or self.rlMostFlag else 0)
 
@@ -98,7 +98,7 @@ class SRLLSTM:
         self.model.add_parameters("lstm-to-lstm", (self.ldims, self.ldims * self.nnvecs + self.rdims))
         self.model.add_parameters("lstm-to-lstm-bias", (self.ldims))
 
-        self.model.add_parameters("hidden-layer", (self.hidden_units, self.ldims * self.nnvecs * (self.k + 1)))
+        self.model.add_parameters("hidden-layer", (self.hidden_units, self.ldims * self.nnvecs * self.k ))
         self.model.add_parameters("hidden-bias", (self.hidden_units))
 
         self.model.add_parameters("hidden2-layer", (self.hidden2_units, self.hidden_units))
@@ -108,7 +108,7 @@ class SRLLSTM:
                                   (2, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
         self.model.add_parameters("output-bias", (2))
 
-        self.model.add_parameters("rhidden-layer", (self.hidden_units, self.ldims * self.nnvecs * (self.k + 1)))
+        self.model.add_parameters("rhidden-layer", (self.hidden_units, self.ldims * self.nnvecs * self.k ))
         self.model.add_parameters("rhidden-bias", (self.hidden_units))
 
         self.model.add_parameters("rhidden2-layer", (self.hidden2_units, self.hidden_units))
@@ -119,10 +119,14 @@ class SRLLSTM:
         self.model.add_parameters("routput-bias", (2 * (len(self.irels) + 0) + 1))
 
     def __evaluate(self, sentence, pred_index, arg_index):
-        pred_vec = sentence[pred_index].lstms
-        arg_vec = sentence[arg_index].lstms
+        pred_vec = sentence.entries[pred_index].lstms
+        arg_vec = sentence.entries[arg_index].lstms
+        pred_head = sentence.head(pred_index)
+        pred_head_vec = sentence.entries[pred_head].lstms if pred_head>=0 else [self.empty]
+        arg_head = sentence.head(arg_index)
+        arg_head_vec = sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]
 
-        input = concatenate(list(chain(*(pred_vec + arg_vec))))
+        input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
 
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
@@ -242,7 +246,7 @@ class SRLLSTM:
             for p in range(len(sentence.predicates)):
                 predicate = sentence.predicates[p]
                 for arg in range(1, len(sentence.entries)):
-                    scores = self.__evaluate(sentence.entries, predicate, arg)
+                    scores = self.__evaluate(sentence, predicate, arg)
                     sentence.entries[arg].predicateList[p] = max(chain(*scores), key=itemgetter(2))[0]
                 renew_cg()
                 yield  sentence
@@ -277,7 +281,7 @@ class SRLLSTM:
             for p in range(len(sentence.predicates)):
                 predicate = sentence.predicates[p]
                 for arg in range(1, len(sentence.entries)):
-                    scores = self.__evaluate(sentence.entries, predicate, arg)
+                    scores = self.__evaluate(sentence, predicate, arg)
                     best = max(chain(*scores), key=itemgetter(2))
                     gold = sentence.entries[arg].predicateList[p]
                     predicted = best[0]
