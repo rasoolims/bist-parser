@@ -127,6 +127,7 @@ class SRLLSTM:
         arg_head = sentence.head(arg_index)
         arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty] for i in xrange(self.k)]
 
+        print pred_index, arg_index, pred_head, arg_head
         print 'creating input'
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
         print 'created input'
