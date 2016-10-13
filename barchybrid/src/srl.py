@@ -97,6 +97,7 @@ class SRLLSTM:
         self.model.add_parameters("lstm-to-lstm", (self.ldims, self.ldims * self.nnvecs + self.rdims))
         self.model.add_parameters("lstm-to-lstm-bias", (self.ldims))
 
+        print self.ldims * self.nnvecs * self.k
         self.model.add_parameters("hidden-layer", (self.hidden_units, self.ldims * self.nnvecs * self.k ))
         self.model.add_parameters("hidden-bias", (self.hidden_units))
 
@@ -126,7 +127,6 @@ class SRLLSTM:
         arg_head = sentence.head(arg_index)
         arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty] for i in xrange(self.k)]
 
-        print pred_vec , arg_vec, pred_head_vec, arg_head_vec
         print 'creating input'
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
         print 'created input'
