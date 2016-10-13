@@ -123,9 +123,9 @@ class SRLLSTM:
         pred_vec = [sentence.entries[pred_index].lstms]
         arg_vec = [sentence.entries[arg_index].lstms]
         pred_head = sentence.head(pred_index)
-        pred_head_vec = [sentence.entries[pred_head].lstms if pred_head>=0 else [self.empty] for i in xrange(self.k)]
+        pred_head_vec = [sentence.entries[pred_head].lstms if pred_head>=0 else [self.empty]]
         arg_head = sentence.head(arg_index)
-        arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty] for i in xrange(self.k)]
+        arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]]
 
         print pred_index, arg_index, pred_head, arg_head
         print 'creating input'
@@ -138,18 +138,7 @@ class SRLLSTM:
                 self.rhidLayer * input + self.rhidBias)) + self.routBias)
         else:
             print 'creating routput'
-            print 'e1'
-            e1 = self.rhidLayer * input
-            print 'e2'
-            e2 = e1 +  self.rhidBias
-            print 'e3'
-            e3 = self.activation(e2)
-            print 'e4'
-            e4 = self.routLayer * e3
-            print 'e5'
-            routput = e4 + self.routBias
-
-            #routput = (self.routLayer * self.activation(self.rhidLayer * input + self.rhidBias) + self.routBias)
+            routput = (self.routLayer * self.activation(self.rhidLayer * input + self.rhidBias) + self.routBias)
 
         if self.hidden2_units > 0:
             output = (self.outLayer * self.activation(
