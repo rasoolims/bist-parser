@@ -146,6 +146,9 @@ class SRLLSTM:
         print 'pre-return'
         scrs, uscrs = routput.value(), output.value()
 
+        print uscrs
+        print scrs
+        print output
         uscrs0 = uscrs[0]
         uscrs1 = uscrs[1]
         output0 = output[0]
