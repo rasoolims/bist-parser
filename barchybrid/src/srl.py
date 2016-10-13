@@ -281,9 +281,7 @@ class SRLLSTM:
             for p in range(1, len(sentence.predicates)):
                 predicate = sentence.predicates[p]
                 for arg in range(1, len(sentence.entries)):
-                    print predicate, arg
                     scores = self.__evaluate(sentence, predicate, arg)
-                    print 'done eval'
                     best = max(chain(*scores), key=itemgetter(2))
                     gold = sentence.entries[arg].predicateList[p]
                     predicted = best[0]
@@ -304,6 +302,7 @@ class SRLLSTM:
                         mloss += 1.0 + best[2] - g_s
                         eloss += 1.0 + best[2] - g_s
                         errs.append(loss)
+                    etotal+= 1
                     if len(errs) > 50:
                         eerrs = esum(errs)
                         scalar_loss = eerrs.scalar_value()
@@ -312,6 +311,7 @@ class SRLLSTM:
                         errs = []
                         renew_cg()
                         self.Init()
+
 
         if len(errs) > 0:
             eerrs = (esum(errs))  # * (1.0/(float(len(errs))))
