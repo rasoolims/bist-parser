@@ -119,12 +119,12 @@ class SRLLSTM:
 
     def __evaluate(self, sentence, pred_index, arg_index):
         print 'started to evaluate'
-        pred_vec = sentence.entries[pred_index].lstms
-        arg_vec = sentence.entries[arg_index].lstms
+        pred_vec = [sentence.entries[pred_index].lstms]
+        arg_vec = [sentence.entries[arg_index].lstms]
         pred_head = sentence.head(pred_index)
-        pred_head_vec = sentence.entries[pred_head].lstms if pred_head>=0 else [self.empty]
+        pred_head_vec = [sentence.entries[pred_head].lstms if pred_head>=0 else [self.empty] for i in xrange(self.k)]
         arg_head = sentence.head(arg_index)
-        arg_head_vec = sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]
+        arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty] for i in xrange(self.k)]
 
         print pred_vec , arg_vec, pred_head_vec, arg_head_vec
         print 'creating input'
