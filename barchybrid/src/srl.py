@@ -125,9 +125,7 @@ class SRLLSTM:
         arg_head = sentence.head(arg_index)
         arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]]
 
-        print pred_index, arg_index, pred_head, arg_head
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
-        print input
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
                 self.rhidLayer * input + self.rhidBias)) + self.routBias)
