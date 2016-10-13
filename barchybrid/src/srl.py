@@ -284,6 +284,7 @@ class SRLLSTM:
                 for arg in range(1, len(sentence.entries)):
                     print p, arg
                     scores = self.__evaluate(sentence, predicate, arg)
+                    print 'done eval'
                     best = max(chain(*scores), key=itemgetter(2))
                     gold = sentence.entries[arg].predicateList[p]
                     predicted = best[0]
