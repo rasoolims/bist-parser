@@ -1,4 +1,4 @@
-from pycnn import *
+from dynet import *
 from utils import read_conll
 from operator import itemgetter
 from itertools import chain
