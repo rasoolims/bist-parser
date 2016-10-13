@@ -126,6 +126,7 @@ class SRLLSTM:
         arg_head_vec = sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]
 
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
+        print 'created input'
 
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
@@ -139,6 +140,7 @@ class SRLLSTM:
         else:
             output = (self.outLayer * self.activation(self.hidLayer * input + self.hidBias) + self.outBias)
 
+        print 'created output'
         scrs, uscrs = routput.value(), output.value()
 
         uscrs0 = uscrs[0]
