@@ -119,7 +119,6 @@ class SRLLSTM:
         self.model.add_parameters("routput-bias", (2 * (len(self.irels) + 0) + 1))
 
     def __evaluate(self, sentence, pred_index, arg_index):
-        print 'started to evaluate'
         pred_vec = [sentence.entries[pred_index].lstms]
         arg_vec = [sentence.entries[arg_index].lstms]
         pred_head = sentence.head(pred_index)
@@ -128,26 +127,20 @@ class SRLLSTM:
         arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]]
 
         print pred_index, arg_index, pred_head, arg_head
-        print 'creating input'
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
         print input
-        print 'created input'
-
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
                 self.rhidLayer * input + self.rhidBias)) + self.routBias)
         else:
-            print 'creating routput'
             routput = (self.routLayer * self.activation(self.rhidLayer * input + self.rhidBias) + self.routBias)
 
         if self.hidden2_units > 0:
             output = (self.outLayer * self.activation(
                 self.hid2Bias + self.hid2Layer * self.activation(self.hidLayer * input + self.hidBias)) + self.outBias)
         else:
-            print 'creating output'
             output = (self.outLayer * self.activation(self.hidLayer * input + self.hidBias) + self.outBias)
 
-        print 'created final output'
         scrs, uscrs = routput.value(), output.value()
 
         uscrs0 = uscrs[0]
@@ -295,10 +288,10 @@ class SRLLSTM:
                     gold = sentence.entries[arg].predicateList[p]
                     predicted = best[0]
 
-                    if gold!=predicted:
-                        loss = best - gold
-                        mloss += 1.0 + best - gold
-                        eloss += 1.0 + best - gold
+                    if gold != predicted:
+                        loss = best[1] - gold
+                        mloss += 1.0 + best[1] - gold
+                        eloss += 1.0 + best[1] - gold
                         errs.append(loss)
                     if len(errs) > 50:
                         print 'backward'
