@@ -118,6 +118,7 @@ class SRLLSTM:
         self.model.add_parameters("routput-bias", (2 * (len(self.irels) + 0) + 1))
 
     def __evaluate(self, sentence, pred_index, arg_index):
+        print 'started to evaluate'
         pred_vec = sentence.entries[pred_index].lstms
         arg_vec = sentence.entries[arg_index].lstms
         pred_head = sentence.head(pred_index)
@@ -125,6 +126,7 @@ class SRLLSTM:
         arg_head = sentence.head(arg_index)
         arg_head_vec = sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]
 
+        print 'creating input'
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
         print 'created input'
 
