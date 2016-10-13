@@ -281,35 +281,38 @@ class SRLLSTM:
             for p in range(1, len(sentence.predicates)):
                 predicate = sentence.predicates[p]
                 for arg in range(1, len(sentence.entries)):
-                    scores = self.__evaluate(sentence, predicate, arg)
-                    best = max(chain(*scores), key=itemgetter(2))
-                    gold = sentence.entries[arg].predicateList[p]
-                    predicted = best[0]
+                    try:
+                        scores = self.__evaluate(sentence, predicate, arg)
+                        best = max(chain(*scores), key=itemgetter(2))
+                        gold = sentence.entries[arg].predicateList[p]
+                        predicted = best[0]
 
-                    if gold != predicted:
-                        gold_score = 0
-                        g_s = 0
-                        if gold == '_':
-                            gold_score = scores[1][0][3]
-                            g_s = scores[1][0][2]
-                        else:
-                            for item in scores[0]:
-                                if item[0]==gold:
-                                    gold_score = item[3]
-                                    g_s = item[2]
-                                    break
+                        if gold != predicted:
+                            gold_score = 0
+                            g_s = 0
+                            if gold == '_':
+                                gold_score = scores[1][0][3]
+                                g_s = scores[1][0][2]
+                            else:
+                                for item in scores[0]:
+                                    if item[0]==gold:
+                                        gold_score = item[3]
+                                        g_s = item[2]
+                                        break
 
-                        if gold != '_' and predicted!='_':
-                            lerrors+=1
-                        else:
-                            lerrors += 1
-                            eerrors += 1
+                            if gold != '_' and predicted!='_':
+                                lerrors+=1
+                            else:
+                                lerrors += 1
+                                eerrors += 1
 
-                        loss = best[3] - gold_score
-                        mloss += 1.0 + best[2] - g_s
-                        eloss += 1.0 + best[2] - g_s
-                        errs.append(loss)
-                    etotal+= 1
+                            loss = best[3] - gold_score
+                            mloss += 1.0 + best[2] - g_s
+                            eloss += 1.0 + best[2] - g_s
+                            errs.append(loss)
+                        etotal+= 1
+                    except:
+                        print 'not able to process!'
                     if len(errs) > 50:
                         print 'backward'
                         eerrs = esum(errs)
