@@ -35,8 +35,7 @@ class SRLLSTM:
         self.rlMostFlag = options.rlMostFlag
         self.rlFlag = options.rlFlag
         self.k = 4
-
-        self.nnvecs = (1 if self.headFlag else 0) + (2 if self.rlFlag or self.rlMostFlag else 0)
+        self.nnvecs = 2
 
         self.external_embedding = None
         if options.external_embedding is not None:
