@@ -125,7 +125,7 @@ class SRLLSTM:
         arg_head = sentence.head(arg_index)
         arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]]
 
-        print sentence.entries[pred_index].norm,sentence.entries[arg_index].norm,sentence.entries[pred_head].norm,sentence.entries[arg_head].norm
+        #print sentence.entries[pred_index].norm,sentence.entries[arg_index].norm,sentence.entries[pred_head].norm,sentence.entries[arg_head].norm
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
 
         if self.hidden2_units > 0:
@@ -304,6 +304,7 @@ class SRLLSTM:
                         errs.append(loss)
                     etotal+= 1
                     if len(errs) > 50:
+                        print 'backward'
                         eerrs = esum(errs)
                         scalar_loss = eerrs.scalar_value()
                         eerrs.backward()
