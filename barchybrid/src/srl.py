@@ -7,6 +7,7 @@ import numpy as np
 
 class SRLLSTM:
     def __init__(self, words, lemmas, pos, depRels, rels, w2i, l2i, options):
+        print 'rels:',rels
         self.model = Model()
         self.trainer = AdamTrainer(self.model)
         random.seed(1)
