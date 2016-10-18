@@ -92,7 +92,7 @@ class SRLLSTM:
         self.semRelEmbedding = self.model.add_lookup_parameters((len(rels), self.rdims))
 
         self.word2lstm = self.model.add_parameters(self.ldims, self.wdims + self.lemDims + self.pdims + (self.edim if self.external_embedding is not None else 0))
-        self.word2lstmbias = self.model.add_parameters(self.ldims)
+        self.word2lstmbias = parameter(self.model.add_parameters(self.ldims))
         self.lstm2lstm = self.model.add_parameters(self.ldims, self.ldims * self.nnvecs + self.rdims)
         self.lstm2lstmbias = self.model.add_parameters(self.ldims)
 
