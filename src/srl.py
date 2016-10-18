@@ -167,7 +167,7 @@ class SRLLSTM:
         print type(self.word2lstmbias)
         print self.ldims
         print  self.wdims, self.lemDims, self.pdims, self.deprdims
-
+        print self.word2lstm * concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec]))
         paddingVec = tanh(
             self.word2lstm * concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])) + self.word2lstmbias)
         print type(self.word2lstm)
