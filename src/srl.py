@@ -154,9 +154,9 @@ class SRLLSTM:
 
     def Init(self):
         evec = lookup(self.extrn, 1) if self.external_embedding is not None else None
-        paddingWordVec = lookup(self.wordEmbeddings.lookup, 1)
-        paddingLemmaVec = lookup(self.lemmaEmbeddings.lookup, 1)
-        paddingPosVec = lookup(self.posEmbedding.lookup, 1)
+        paddingWordVec = lookup(self.wordEmbeddings, 1)
+        paddingLemmaVec = lookup(self.lemmaEmbeddings, 1)
+        paddingPosVec = lookup(self.posEmbedding, 1)
 
         paddingVec = tanh(
             self.word2lstm * concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])) + self.word2lstmbias)
