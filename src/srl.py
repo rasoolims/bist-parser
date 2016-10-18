@@ -325,7 +325,7 @@ class SRLLSTM:
                             errs.append(loss)
                         etotal+= 1
                     except:
-                        #print 'not able to process!'
+                        print 'not able to process!'
                     if len(errs) > 50:
                         #print 'backward'
                         eerrs = esum(errs)
