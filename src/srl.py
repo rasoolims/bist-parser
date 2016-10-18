@@ -85,11 +85,11 @@ class SRLLSTM:
         self.lemmas['*INITIAL*'] = 2
         self.deprels['*INITIAL*'] = 2
 
-        self.wordEmbeddings = parameter(self.model.add_lookup_parameters((len(words) + 3, self.wdims)))
-        self.lemmaEmbeddings = parameter(self.model.add_lookup_parameters((len(lemmas) + 3, self.lemDims)))
-        self.posEmbedding = parameter(self.model.add_lookup_parameters((len(pos) + 3, self.pdims)))
-        self.depRelEmbedding = parameter(self.model.add_lookup_parameters((len(depRels), self.deprdims)))
-        self.semRelEmbedding = parameter(self.model.add_lookup_parameters((len(rels), self.rdims)))
+        self.wordEmbeddings = self.model.add_lookup_parameters((len(words) + 3, self.wdims)
+        self.lemmaEmbeddings = self.model.add_lookup_parameters((len(lemmas) + 3, self.lemDims)
+        self.posEmbedding = self.model.add_lookup_parameters((len(pos) + 3, self.pdims)
+        self.depRelEmbedding = self.model.add_lookup_parameters((len(depRels), self.deprdims)
+        self.semRelEmbedding = self.model.add_lookup_parameters((len(rels), self.rdims)
 
         self.word2lstm = parameter(self.model.add_parameters(self.ldims, self.wdims + self.lemDims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
         self.word2lstmbias = parameter(parameter(self.model.add_parameters(self.ldims)))
