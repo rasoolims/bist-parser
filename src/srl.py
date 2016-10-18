@@ -158,6 +158,11 @@ class SRLLSTM:
         paddingLemmaVec = lookup(self.lemmaEmbeddings, 1)
         paddingPosVec = lookup(self.posEmbedding, 1)
 
+        print type(evec)
+        print type(paddingWordVec)
+        print type(paddingLemmaVec)
+        print type(paddingPosVec)
+        print type(self.word2lstmbias)
         print type(concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])) + self.word2lstmbias)
         print type(self.word2lstm)
         paddingVec = tanh(
