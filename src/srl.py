@@ -48,7 +48,7 @@ class SRLLSTM:
             self.edim = len(self.external_embedding.values()[0])
             self.noextrn = [0.0 for _ in xrange(self.edim)]
             self.extrnd = {word: i + 3 for i, word in enumerate(self.external_embedding)}
-            self.extrn = self.model.add_lookup_parameters(len(self.external_embedding) + 3, self.edim)
+            self.extrn = self.model.add_lookup_parameters((len(self.external_embedding) + 3, self.edim))
             for word, i in self.extrnd.iteritems():
                 self.extrn.init_row(i, self.external_embedding[word])
             self.extrnd['*PAD*'] = 1
@@ -85,11 +85,11 @@ class SRLLSTM:
         self.lemmas['*INITIAL*'] = 2
         self.deprels['*INITIAL*'] = 2
 
-        self.wordEmbeddings = self.model.add_lookup_parameters(len(words) + 3, self.wdims)
-        self.lemmaEmbeddings = self.model.add_lookup_parameters(len(lemmas) + 3, self.lemDims)
-        self.posEmbedding = self.model.add_lookup_parameters(len(pos) + 3, self.pdims)
-        self.depRelEmbedding = self.model.add_lookup_parameters(len(depRels), self.deprdims)
-        self.semRelEmbedding = self.model.add_lookup_parameters(len(rels), self.rdims)
+        self.wordEmbeddings = self.model.add_lookup_parameters((len(words) + 3, self.wdims))
+        self.lemmaEmbeddings = self.model.add_lookup_parameters((len(lemmas) + 3, self.lemDims))
+        self.posEmbedding = self.model.add_lookup_parameters((len(pos) + 3, self.pdims))
+        self.depRelEmbedding = self.model.add_lookup_parameters((len(depRels), self.deprdims))
+        self.semRelEmbedding = self.model.add_lookup_parameters((len(rels), self.rdims))
 
         self.word2lstm = self.model.add_parameters(self.ldims, self.wdims + self.lemDims + self.pdims + (self.edim if self.external_embedding is not None else 0))
         self.word2lstmbias = self.model.add_parameters(self.ldims)
