@@ -48,9 +48,9 @@ class SRLLSTM:
             self.edim = len(self.external_embedding.values()[0])
             self.noextrn = [0.0 for _ in xrange(self.edim)]
             self.extrnd = {word: i + 3 for i, word in enumerate(self.external_embedding)}
-            self.model.add_lookup_parameters("extrn-lookup", (len(self.external_embedding) + 3, self.edim))
+            self.extrn = self.model.add_lookup_parameters(len(self.external_embedding) + 3, self.edim)
             for word, i in self.extrnd.iteritems():
-                self.model["extrn-lookup"].init_row(i, self.external_embedding[word])
+                self.extrn.init_row(i, self.external_embedding[word])
             self.extrnd['*PAD*'] = 1
             self.extrnd['*INITIAL*'] = 2
 
@@ -85,37 +85,34 @@ class SRLLSTM:
         self.lemmas['*INITIAL*'] = 2
         self.deprels['*INITIAL*'] = 2
 
-        self.model.add_lookup_parameters("word-lookup", (len(words) + 3, self.wdims))
-        self.model.add_lookup_parameters("lemma-lookup", (len(lemmas) + 3, self.lemDims))
-        self.model.add_lookup_parameters("pos-lookup", (len(pos) + 3, self.pdims))
-        self.model.add_lookup_parameters("deprel-lookup", (len(depRels), self.deprdims))
-        self.model.add_lookup_parameters("rels-lookup", (len(rels), self.rdims))
+        self.wordEmbeddings = self.model.add_lookup_parameters(len(words) + 3, self.wdims)
+        self.lemmaEmbeddings = self.model.add_lookup_parameters(len(lemmas) + 3, self.lemDims)
+        self.posEmbedding = self.model.add_lookup_parameters(len(pos) + 3, self.pdims)
+        self.depRelEmbedding = self.model.add_lookup_parameters(len(depRels), self.deprdims)
+        self.semRelEmbedding = self.model.add_lookup_parameters(len(rels), self.rdims)
 
-        self.model.add_parameters("word-to-lstm", (
-            self.ldims, self.wdims + self.lemDims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
-        self.model.add_parameters("word-to-lstm-bias", (self.ldims))
-        self.model.add_parameters("lstm-to-lstm", (self.ldims, self.ldims * self.nnvecs + self.rdims))
-        self.model.add_parameters("lstm-to-lstm-bias", (self.ldims))
+        self.word2lstm = self.model.add_parameters(self.ldims, self.wdims + self.lemDims + self.pdims + (self.edim if self.external_embedding is not None else 0))
+        self.word2lstmbias = self.model.add_parameters(self.ldims)
+        self.lstm2lstm = self.model.add_parameters(self.ldims, self.ldims * self.nnvecs + self.rdims)
+        self.lstm2lstmbias = self.model.add_parameters(self.ldims)
 
-        self.model.add_parameters("hidden-layer", (self.hidden_units, self.ldims * self.nnvecs * self.k ))
-        self.model.add_parameters("hidden-bias", (self.hidden_units))
+        self.hidLayer = self.model.add_parameters(self.hidden_units, self.ldims * self.nnvecs * self.k)
+        self.hidBias = self.model.add_parameters(self.hidden_units)
 
-        self.model.add_parameters("hidden2-layer", (self.hidden2_units, self.hidden_units))
-        self.model.add_parameters("hidden2-bias", (self.hidden2_units))
+        self.hid2Layer = self.model.add_parameters(self.hidden2_units, self.hidden_units)
+        self.hid2Bias = self.model.add_parameters(self.hidden2_units)
 
-        self.model.add_parameters("output-layer",
-                                  (2, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
-        self.model.add_parameters("output-bias", (2))
+        self.outLayer = self.model.add_parameters(2, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units)
+        self.outBias = self.model.add_parameters(2)
 
-        self.model.add_parameters("rhidden-layer", (self.hidden_units, self.ldims * self.nnvecs * self.k ))
-        self.model.add_parameters("rhidden-bias", (self.hidden_units))
+        self.rhidLayer = self.model.add_parameters(self.hidden_units, self.ldims * self.nnvecs * self.k)
+        self.rhidBias  = self.model.add_parameters(self.hidden_units)
 
-        self.model.add_parameters("rhidden2-layer", (self.hidden2_units, self.hidden_units))
-        self.model.add_parameters("rhidden2-bias", (self.hidden2_units))
+        self.rhid2Layer = self.model.add_parameters(self.hidden2_units, self.hidden_units)
+        self.rhid2Bias = self.model.add_parameters(self.hidden2_units)
 
-        self.model.add_parameters("routput-layer", (
-            2 * (len(self.irels) + 0) + 1, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
-        self.model.add_parameters("routput-bias", (2 * (len(self.irels) + 0) + 1))
+        self.routLayer =  self.model.add_parameters(2 * (len(self.irels) + 0) + 1, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units)
+        self.routBias = self.model.add_parameters(2 * (len(self.irels) + 0) + 1)
 
     def __evaluate(self, sentence, pred_index, arg_index):
         pred_vec = [sentence.entries[pred_index].lstms]
@@ -156,32 +153,10 @@ class SRLLSTM:
         self.model.load(filename)
 
     def Init(self):
-        self.word2lstm = parameter(self.model["word-to-lstm"])
-        self.lstm2lstm = parameter(self.model["lstm-to-lstm"])
-
-        self.word2lstmbias = parameter(self.model["word-to-lstm-bias"])
-        self.lstm2lstmbias = parameter(self.model["lstm-to-lstm-bias"])
-
-        self.hid2Layer = parameter(self.model["hidden2-layer"])
-        self.hidLayer = parameter(self.model["hidden-layer"])
-        self.outLayer = parameter(self.model["output-layer"])
-
-        self.hid2Bias = parameter(self.model["hidden2-bias"])
-        self.hidBias = parameter(self.model["hidden-bias"])
-        self.outBias = parameter(self.model["output-bias"])
-
-        self.rhid2Layer = parameter(self.model["rhidden2-layer"])
-        self.rhidLayer = parameter(self.model["rhidden-layer"])
-        self.routLayer = parameter(self.model["routput-layer"])
-
-        self.rhid2Bias = parameter(self.model["rhidden2-bias"])
-        self.rhidBias = parameter(self.model["rhidden-bias"])
-        self.routBias = parameter(self.model["routput-bias"])
-
-        evec = lookup(self.model["extrn-lookup"], 1) if self.external_embedding is not None else None
-        paddingWordVec = lookup(self.model["word-lookup"], 1)
-        paddingLemmaVec = lookup(self.model["lemma-lookup"], 1)
-        paddingPosVec = lookup(self.model["pos-lookup"], 1) if self.pdims > 0 else None
+        evec = lookup(self.extrn, 1) if self.external_embedding is not None else None
+        paddingWordVec = self.wordEmbeddings.lookup[1]
+        paddingLemmaVec = self.lemmaEmbeddings.lookup[1]
+        paddingPosVec = self.posEmbedding.lookup[1]
 
         paddingVec = tanh(
             self.word2lstm * concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])) + self.word2lstmbias)
@@ -191,19 +166,19 @@ class SRLLSTM:
         for root in sentence:
             c = float(self.wordsCount.get(root.norm, 0))
             dropFlag = not train or (random.random() < (c / (0.25 + c)))
-            root.wordvec = lookup(self.model["word-lookup"], int(self.vocab.get(root.norm, 0)) if dropFlag else 0)
-            root.lemmaVec = lookup(self.model["lemma-lookup"], int(self.vocab.get(root.lemmaNorm, 0)) if dropFlag else 0)
-            root.posvec = lookup(self.model["pos-lookup"], int(self.pos[root.pos])) if self.pdims > 0 else None
+            root.wordvec = lookup(self.wordEmbeddings, int(self.vocab.get(root.norm, 0)) if dropFlag else 0)
+            root.lemmaVec = lookup(self.lemmaEmbeddings, int(self.vocab.get(root.lemmaNorm, 0)) if dropFlag else 0)
+            root.posvec = lookup(self.posEmbedding, int(self.pos[root.pos])) if self.pdims > 0 else None
 
             if self.external_embedding is not None:
                 if not dropFlag and random.random() < 0.5:
-                    root.evec = lookup(self.model["extrn-lookup"], 0)
+                    root.evec = lookup(self.extrn, 0)
                 elif root.form in self.external_embedding:
-                    root.evec = lookup(self.model["extrn-lookup"], self.extrnd[root.form], update=True)
+                    root.evec = lookup(self.extrn, self.extrnd[root.form], update=True)
                 elif root.norm in self.external_embedding:
-                    root.evec = lookup(self.model["extrn-lookup"], self.extrnd[root.norm], update=True)
+                    root.evec = lookup(self.extrn, self.extrnd[root.norm], update=True)
                 else:
-                    root.evec = lookup(self.model["extrn-lookup"], 0)
+                    root.evec = lookup(self.extrn, 0)
             else:
                 root.evec = None
             root.ivec = concatenate(filter(None, [root.wordvec, root.lemmaVec, root.posvec, root.evec]))
