@@ -132,30 +132,21 @@ class SRLLSTM:
         self.routBias = parameter(self.routBias_)
 
     def __evaluate(self, sentence, pred_index, arg_index):
-        print 'pred_vc'
         pred_vec = [sentence.entries[pred_index].lstms]
-        print 'arg_vc'
         arg_vec = [sentence.entries[arg_index].lstms]
-        print 'pred_head'
         pred_head = sentence.head(pred_index)
-        print 'pred_head_vec'
         pred_head_vec = [sentence.entries[pred_head].lstms if pred_head>=0 else [self.empty]]
-        print 'arg_head'
         arg_head = sentence.head(arg_index)
-        print 'arg_head_vec'
         arg_head_vec = [sentence.entries[arg_head].lstms if arg_head >= 0 else [self.empty]]
 
-        print 'concat'
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
 
-        print 'routput'
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
                 self.rhidLayer * input + self.rhidBias)) + self.routBias)
         else:
             routput = (self.routLayer * self.activation(self.rhidLayer * input + self.rhidBias) + self.routBias)
 
-        print 'output'
         if self.hidden2_units > 0:
             output = (self.outLayer * self.activation(
                 self.hid2Bias + self.hid2Layer * self.activation(self.hidLayer * input + self.hidBias)) + self.outBias)
