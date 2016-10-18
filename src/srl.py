@@ -157,20 +157,8 @@ class SRLLSTM:
         paddingWordVec = lookup(self.wordEmbeddings, 1)
         paddingLemmaVec = lookup(self.lemmaEmbeddings, 1)
         paddingPosVec = lookup(self.posEmbedding, 1)
-
-        print type(evec)
-        print type(paddingWordVec)
-        print type(paddingLemmaVec)
-        print type(paddingPosVec)
-        print type(self.word2lstmbias)
-        print type(concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])))
-        print type(self.word2lstmbias)
-        print self.ldims
-        print  self.wdims, self.lemDims, self.pdims, self.deprdims
-        print self.word2lstm * concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec]))
         paddingVec = tanh(
             self.word2lstm * concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])) + self.word2lstmbias)
-        print type(self.word2lstm)
         self.empty = paddingVec if self.nnvecs == 1 else concatenate([paddingVec for _ in xrange(self.nnvecs)])
 
     def getWordEmbeddings(self, sentence, train):
