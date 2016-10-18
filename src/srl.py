@@ -163,8 +163,11 @@ class SRLLSTM:
         print type(paddingLemmaVec)
         print type(paddingPosVec)
         print type(self.word2lstmbias)
+        print type(concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])))
+        print type(self.word2lstmbias)
         print type(concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])) + self.word2lstmbias)
         print type(self.word2lstm)
+
         paddingVec = tanh(
             self.word2lstm * concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])) + self.word2lstmbias)
         self.empty = paddingVec if self.nnvecs == 1 else concatenate([paddingVec for _ in xrange(self.nnvecs)])
