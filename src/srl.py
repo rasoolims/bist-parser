@@ -186,7 +186,7 @@ class SRLLSTM:
         self.rhid2Bias = parameter(self.rhid2Bias_)
         self.routLayer = parameter(self.routLayer_)
         self.routBias = parameter(self.routBias_)
-        
+
         evec = lookup(self.extrn, 1) if self.external_embedding is not None else None
         paddingWordVec = lookup(self.wordEmbeddings, 1)
         paddingLemmaVec = lookup(self.lemmaEmbeddings, 1)
@@ -284,18 +284,18 @@ class SRLLSTM:
                 eloss = 0.0
                 etotal = 0
                 lerrors = 0
-            print 'before word embeddings'
+            #print 'before word embeddings'
             self.getWordEmbeddings(sentence.entries, True)
-            print 'before putting to lstms'
+            #print 'before putting to lstms'
             for root in sentence.entries:
                 root.lstms = [root.vec for _ in xrange(self.nnvecs)]
             for p in range(1, len(sentence.predicates)):
                 predicate = sentence.predicates[p]
                 for arg in range(1, len(sentence.entries)):
                     try:
-                        print 'before evaluate'
+                        #print 'before evaluate'
                         scores = self.__evaluate(sentence, predicate, arg)
-                        print 'before best'
+                        #print 'before best'
                         best = max(chain(*scores), key=itemgetter(2))
                         gold = sentence.entries[arg].predicateList[p]
                         predicted = best[0]
@@ -325,20 +325,20 @@ class SRLLSTM:
                             errs.append(loss)
                         etotal+= 1
                     except:
-                        print 'not able to process!'
+                        #print 'not able to process!'
                     if len(errs) > 50:
-                        print 'backward'
+                        #print 'backward'
                         eerrs = esum(errs)
-                        print 'after esum'
+                        #print 'after esum'
                         scalar_loss = eerrs.scalar_value()
                         eerrs.backward()
-                        print 'after backward'
+                        #print 'after backward'
                         self.trainer.update()
-                        print 'after update'
+                        #print 'after update'
                         errs = []
-                        print 'renew cg'
+                        #print 'renew cg'
                         renew_cg()
-                        print 'before new init'
+                        #print 'before new init'
                         self.Init()
 
 
