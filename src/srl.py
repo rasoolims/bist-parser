@@ -250,14 +250,18 @@ class SRLLSTM:
                 eloss = 0.0
                 etotal = 0
                 lerrors = 0
+            print 'before word embeddings'
             self.getWordEmbeddings(sentence.entries, True)
+            print 'before putting to lstms'
             for root in sentence.entries:
                 root.lstms = [root.vec for _ in xrange(self.nnvecs)]
             for p in range(1, len(sentence.predicates)):
                 predicate = sentence.predicates[p]
                 for arg in range(1, len(sentence.entries)):
                     try:
+                        print 'before evaluate'
                         scores = self.__evaluate(sentence, predicate, arg)
+                        print 'before best'
                         best = max(chain(*scores), key=itemgetter(2))
                         gold = sentence.entries[arg].predicateList[p]
                         predicted = best[0]
