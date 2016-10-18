@@ -302,7 +302,9 @@ class SRLLSTM:
                         self.trainer.update()
                         print 'after update'
                         errs = []
+                        print 'renew cg'
                         renew_cg()
+                        print 'before new init'
                         self.Init()
 
 
