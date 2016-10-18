@@ -125,21 +125,18 @@ class SRLLSTM:
         #print sentence.entries[pred_index].norm,sentence.entries[arg_index].norm,sentence.entries[pred_head].norm,sentence.entries[arg_head].norm
         input = concatenate(list(chain(*(pred_vec + arg_vec + pred_head_vec + arg_head_vec))))
 
-        print 'before routput'
         if self.hidden2_units > 0:
             routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
                 self.rhidLayer * input + self.rhidBias)) + self.routBias)
         else:
             routput = (self.routLayer * self.activation(self.rhidLayer * input + self.rhidBias) + self.routBias)
 
-        print 'before output'
         if self.hidden2_units > 0:
             output = (self.outLayer * self.activation(
                 self.hid2Bias + self.hid2Layer * self.activation(self.hidLayer * input + self.hidBias)) + self.outBias)
         else:
             output = (self.outLayer * self.activation(self.hidLayer * input + self.hidBias) + self.outBias)
 
-        print 'before .value()'
         scrs, uscrs = routput.value(), output.value()
 
         uscrs0 = uscrs[0]
@@ -298,9 +295,12 @@ class SRLLSTM:
                     if len(errs) > 50:
                         print 'backward'
                         eerrs = esum(errs)
+                        print 'after esum'
                         scalar_loss = eerrs.scalar_value()
                         eerrs.backward()
+                        print 'after backward'
                         self.trainer.update()
+                        print 'after update'
                         errs = []
                         renew_cg()
                         self.Init()
