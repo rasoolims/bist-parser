@@ -1,6 +1,11 @@
+import os
+import pickle
+import sys
+import time
+import utils
 from optparse import OptionParser
+
 from srl import SRLLSTM
-import pickle, utils, os, time, sys
 
 if __name__ == '__main__':
     parser = OptionParser()
