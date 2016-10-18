@@ -165,6 +165,7 @@ class SRLLSTM:
         print type(self.word2lstmbias)
         print type(concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])))
         print type(self.word2lstmbias)
+        print self.ldims
         print type(concatenate(filter(None, [paddingWordVec, paddingLemmaVec, paddingPosVec, evec])) + self.word2lstmbias)
         print type(self.word2lstm)
 
