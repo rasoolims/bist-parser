@@ -91,28 +91,45 @@ class SRLLSTM:
         self.depRelEmbedding = self.model.add_lookup_parameters((len(depRels), self.deprdims))
         self.semRelEmbedding = self.model.add_lookup_parameters((len(rels), self.rdims))
 
-        self.word2lstm = parameter(self.model.add_parameters((self.ldims, self.wdims + self.lemDims + self.pdims + (self.edim if self.external_embedding is not None else 0))))
-        self.word2lstmbias = parameter(self.model.add_parameters((self.ldims)))
-        self.lstm2lstm = parameter(self.model.add_parameters((self.ldims, self.ldims * self.nnvecs + self.rdims)))
-        self.lstm2lstmbias = parameter(self.model.add_parameters((self.ldims)))
+        self.word2lstm_ = self.model.add_parameters((self.ldims, self.wdims + self.lemDims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
+        self.word2lstmbias_ = self.model.add_parameters((self.ldims))
+        self.lstm2lstm_ = self.model.add_parameters((self.ldims, self.ldims * self.nnvecs + self.rdims))
+        self.lstm2lstmbias_ = self.model.add_parameters((self.ldims))
 
-        self.hidLayer = parameter(self.model.add_parameters((self.hidden_units, self.ldims * self.nnvecs * self.k)))
-        self.hidBias = parameter(self.model.add_parameters((self.hidden_units)))
+        self.hidLayer_ = self.model.add_parameters((self.hidden_units, self.ldims * self.nnvecs * self.k))
+        self.hidBias_ = self.model.add_parameters((self.hidden_units))
 
-        self.hid2Layer = parameter(self.model.add_parameters((self.hidden2_units, self.hidden_units)))
-        self.hid2Bias = parameter(self.model.add_parameters((self.hidden2_units)))
+        self.hid2Layer_ = self.model.add_parameters((self.hidden2_units, self.hidden_units))
+        self.hid2Bias_ = self.model.add_parameters((self.hidden2_units))
 
-        self.outLayer = parameter(self.model.add_parameters((2, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units)))
-        self.outBias = parameter(self.model.add_parameters((2)))
+        self.outLayer_ = self.model.add_parameters((2, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
+        self.outBias_ = self.model.add_parameters((2))
 
-        self.rhidLayer = parameter(self.model.add_parameters((self.hidden_units, self.ldims * self.nnvecs * self.k)))
-        self.rhidBias  = parameter(self.model.add_parameters((self.hidden_units)))
+        self.rhidLayer_ = self.model.add_parameters((self.hidden_units, self.ldims * self.nnvecs * self.k))
+        self.rhidBias_  = self.model.add_parameters((self.hidden_units))
 
-        self.rhid2Layer = parameter(self.model.add_parameters((self.hidden2_units, self.hidden_units)))
-        self.rhid2Bias = parameter(self.model.add_parameters((self.hidden2_units)))
+        self.rhid2Layer_ = self.model.add_parameters((self.hidden2_units, self.hidden_units))
+        self.rhid2Bias_ = self.model.add_parameters((self.hidden2_units))
 
-        self.routLayer =  parameter(self.model.add_parameters((2 * (len(self.irels) + 0) + 1, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units)))
-        self.routBias = parameter(self.model.add_parameters((2 * (len(self.irels) + 0) + 1)))
+        self.routLayer_ =  self.model.add_parameters((2 * (len(self.irels) + 0) + 1, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
+        self.routBias_ = self.model.add_parameters((2 * (len(self.irels) + 0) + 1))
+
+        self.word2lstm = parameter(self.word2lstm_)
+        self.word2lstmbias = parameter(self.word2lstmbias_)
+        self.lstm2lstm =  parameter(self.lstm2lstm_)
+        self.lstm2lstmbias =  parameter(self.lstm2lstmbias_)
+        self.hidLayer = parameter(self.hidLayer_)
+        self.hidBias = parameter(self.hidBias_)
+        self.hid2Layer = parameter(self.hid2Layer_)
+        self.hid2Bias = parameter(self.hid2Bias_)
+        self.outLayer = parameter(self.outLayer_)
+        self.outBias = parameter(self.outBias_)
+        self.rhidLayer = parameter(self.rhidLayer_)
+        self.rhidBias = parameter(self.rhidBias_)
+        self.rhid2Layer = parameter(self.rhid2Layer_)
+        self.rhid2Bias = parameter(self.rhid2Bias_)
+        self.routLayer = parameter(self.routLayer_)
+        self.routBias = parameter(self.routBias_)
 
     def __evaluate(self, sentence, pred_index, arg_index):
         pred_vec = [sentence.entries[pred_index].lstms]
@@ -153,6 +170,23 @@ class SRLLSTM:
         self.model.load(filename)
 
     def Init(self):
+        self.word2lstm = parameter(self.word2lstm_)
+        self.word2lstmbias = parameter(self.word2lstmbias_)
+        self.lstm2lstm = parameter(self.lstm2lstm_)
+        self.lstm2lstmbias = parameter(self.lstm2lstmbias_)
+        self.hidLayer = parameter(self.hidLayer_)
+        self.hidBias = parameter(self.hidBias_)
+        self.hid2Layer = parameter(self.hid2Layer_)
+        self.hid2Bias = parameter(self.hid2Bias_)
+        self.outLayer = parameter(self.outLayer_)
+        self.outBias = parameter(self.outBias_)
+        self.rhidLayer = parameter(self.rhidLayer_)
+        self.rhidBias = parameter(self.rhidBias_)
+        self.rhid2Layer = parameter(self.rhid2Layer_)
+        self.rhid2Bias = parameter(self.rhid2Bias_)
+        self.routLayer = parameter(self.routLayer_)
+        self.routBias = parameter(self.routBias_)
+        
         evec = lookup(self.extrn, 1) if self.external_embedding is not None else None
         paddingWordVec = lookup(self.wordEmbeddings, 1)
         paddingLemmaVec = lookup(self.lemmaEmbeddings, 1)
