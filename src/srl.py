@@ -94,25 +94,25 @@ class SRLLSTM:
         self.word2lstm = parameter(self.model.add_parameters(self.ldims, self.wdims + self.lemDims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
         self.word2lstmbias = parameter(self.model.add_parameters(self.ldims))
         self.lstm2lstm = parameter(self.model.add_parameters(self.ldims, self.ldims * self.nnvecs + self.rdims))
-        self.lstm2lstmbias = parameter(self.model.add_parameters(self.ldims))
+        self.lstm2lstmbias = parameter(self.model.add_parameters((self.ldims)))
 
         self.hidLayer = parameter(self.model.add_parameters(self.hidden_units, self.ldims * self.nnvecs * self.k))
-        self.hidBias = parameter(self.model.add_parameters(self.hidden_units))
+        self.hidBias = parameter(self.model.add_parameters((self.hidden_units)))
 
         self.hid2Layer = parameter(self.model.add_parameters(self.hidden2_units, self.hidden_units))
-        self.hid2Bias = parameter(self.model.add_parameters(self.hidden2_units))
+        self.hid2Bias = parameter(self.model.add_parameters((self.hidden2_units)))
 
         self.outLayer = parameter(self.model.add_parameters(2, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
-        self.outBias = parameter(self.model.add_parameters(2))
+        self.outBias = parameter(self.model.add_parameters((2)))
 
         self.rhidLayer = parameter(self.model.add_parameters(self.hidden_units, self.ldims * self.nnvecs * self.k))
-        self.rhidBias  = parameter(self.model.add_parameters(self.hidden_units))
+        self.rhidBias  = parameter(self.model.add_parameters((self.hidden_units)))
 
         self.rhid2Layer = parameter(self.model.add_parameters(self.hidden2_units, self.hidden_units))
-        self.rhid2Bias = parameter(self.model.add_parameters(self.hidden2_units))
+        self.rhid2Bias = parameter(self.model.add_parameters((self.hidden2_units)))
 
         self.routLayer =  parameter(self.model.add_parameters(2 * (len(self.irels) + 0) + 1, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
-        self.routBias = parameter(self.model.add_parameters(2 * (len(self.irels) + 0) + 1))
+        self.routBias = parameter(self.model.add_parameters((2 * (len(self.irels) + 0) + 1)))
 
     def __evaluate(self, sentence, pred_index, arg_index):
         pred_vec = [sentence.entries[pred_index].lstms]
