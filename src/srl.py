@@ -323,6 +323,7 @@ class SRLLSTM:
                         print 'not able to process!'
                     if len(errs) > 50:
                         eerrs = esum(errs)
+                        scalar_loss = eerrs.scalar_value()
                         eerrs.backward()
                         self.trainer.update()
                         errs = []
