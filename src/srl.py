@@ -322,9 +322,12 @@ class SRLLSTM:
                         eloss += 1.0 + best[2] - g_s
                         errs.append(loss)
                     etotal+= 1
+                    err_num += 1
+                    print 'err_num', err_num
+
                     if len(errs) > 50:
-                        err_num+=1
-                        print 'err_num',err_num
+                        err_num = 0
+                        eval_num = 0
                         eerrs = esum(errs)
                         scalar_loss = eerrs.scalar_value()
                         eerrs.backward()
