@@ -319,6 +319,7 @@ class SRLLSTM:
                         errs.append(loss)
                     etotal+= 1
                     if len(errs) > 50:
+                        print 'backward at', iSentence
                         eerrs = esum(errs)
                         scalar_loss = eerrs.scalar_value()
                         eerrs.backward()
