@@ -317,14 +317,14 @@ class SRLLSTM:
                         eloss += 1.0 + best[2] - g_s
                         errs.append(loss)
                     etotal+= 1
-                    if len(errs) > 50:
-                        eerrs = esum(errs)
-                        scalar_loss = eerrs.scalar_value()
-                        eerrs.backward()
-                        self.trainer.update()
-                        errs = []
-                        renew_cg()
-                        self.Init()
+            if len(errs) > 50:
+                eerrs = esum(errs)
+                scalar_loss = eerrs.scalar_value()
+                eerrs.backward()
+                self.trainer.update()
+                errs = []
+                renew_cg()
+                self.Init()
 
         if len(errs) > 0:
             eerrs = (esum(errs))  # * (1.0/(float(len(errs))))
