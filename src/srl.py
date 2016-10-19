@@ -254,8 +254,8 @@ class SRLLSTM:
                 for arg in range(1, len(sentence.entries)):
                     scores = self.__evaluate(sentence, predicate, arg)
                     sentence.entries[arg].predicateList[p] = max(chain(*scores), key=itemgetter(2))[0]
-                renew_cg()
-                yield  sentence
+            renew_cg()
+            yield  sentence
 
     def Train(self, conll_path):
         mloss = 0.0
