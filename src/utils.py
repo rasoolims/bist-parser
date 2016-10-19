@@ -24,8 +24,8 @@ class ConllEntry:
 
     def __str__(self):
         entry_list = [str(self.id), self.form, self.lemma, self.lemma, self.pos, self.pos, '_', '_',
-                      str(self.pred_parent_id),
-                      str(self.pred_parent_id), self.pred_relation, self.pred_relation,
+                      str(self.parent_id),
+                      str(self.parent_id), self.pred_relation, self.pred_relation,
                       '_' if self.sense == '_' else 'Y',
                       self.sense, '_']
         for p in self.predicateList.values():
@@ -78,7 +78,7 @@ def write_conll(fn, conll_structs):
     with codecs.open(fn, 'w') as fh:
         for conll_struct in conll_structs:
             for entry in conll_struct.entries:
-                print entry
+                #print entry
                 fh.write(entry)
                 fh.write('\n')
             fh.write('\n')
