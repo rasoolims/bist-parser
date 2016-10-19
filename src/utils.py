@@ -80,7 +80,7 @@ def write_conll(fn, conll_structs):
             for i in range(1,len(conll_struct.entries)):
                 entry = conll_struct.entries[i]
                 print entry
-                fh.write(entry)
+                fh.write(str(entry))
                 fh.write('\n')
             fh.write('\n')
 
