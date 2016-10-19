@@ -10,7 +10,7 @@ class ConllStruct:
         return self.entries[dep].parent_id
 
 class ConllEntry:
-    def __init__(self, id, form, lemma, pos, sense = '_', parent_id=-1, relation='_', predicateList=[]):
+    def __init__(self, id, form, lemma, pos, sense = '_', parent_id=-1, relation='_', predicateList=dict()):
         self.id = id
         self.form = form
         self.lemma = lemma
