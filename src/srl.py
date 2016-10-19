@@ -269,8 +269,6 @@ class SRLLSTM:
         random.shuffle(shuffledData)
         errs = []
         self.Init()
-        eval_num = 0
-        err_num = 0
         for iSentence, sentence in enumerate(shuffledData):
             print ' '.join([entry.form for entry in sentence.entries])
             if iSentence % 1 == 0:
@@ -290,8 +288,6 @@ class SRLLSTM:
             for p in range(1, len(sentence.predicates)):
                 predicate = sentence.predicates[p]
                 for arg in range(1, len(sentence.entries)):
-                    eval_num+=1
-                    print 'eval_num',eval_num
                     scores = self.__evaluate(sentence, predicate, arg)
                     best = max(chain(*scores), key=itemgetter(2))
                     gold = sentence.entries[arg].predicateList[p]
@@ -320,12 +316,8 @@ class SRLLSTM:
                         mloss += 1.0 + best[2] - g_s
                         eloss += 1.0 + best[2] - g_s
                         errs.append(loss)
-                        err_num += 1
-                        print 'err_num', err_num
                     etotal+= 1
                     if len(errs) > 50:
-                        err_num = 0
-                        eval_num = 0
                         eerrs = esum(errs)
                         scalar_loss = eerrs.scalar_value()
                         eerrs.backward()
