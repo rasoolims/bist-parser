@@ -153,14 +153,12 @@ class SRLLSTM:
         else:
             output = (self.outLayer * self.activation(self.hidLayer * input + self.hidBias) + self.outBias)
 
-        print '.value()'
         scrs, uscrs = routput.value(), output.value()
 
         uscrs0 = uscrs[0]
         uscrs1 = uscrs[1]
         output0 = output[0]
         output1 = output[1]
-        print 'return'
         return  [[(rel, 0, scrs[1 + j * 2] + uscrs1, routput[1 + j * 2] + output1) for j, rel in enumerate(self.irels)],
                    [('_', 1, scrs[0] + uscrs0, routput[0] + output0)]]
 
@@ -274,8 +272,6 @@ class SRLLSTM:
         self.Init()
         for iSentence, sentence in enumerate(shuffledData):
             print ' '.join([entry.form for entry in sentence.entries])
-            if iSentence==7:
-                continue
             if iSentence % 1 == 0:
                 try:
                     print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Errors:', (float(
@@ -287,18 +283,14 @@ class SRLLSTM:
                 eloss = 0.0
                 etotal = 0
                 lerrors = 0
-            #print 'before word embeddings'
             self.getWordEmbeddings(sentence.entries, True)
-            #print 'before putting to lstms'
             for root in sentence.entries:
                 root.lstms = [root.vec for _ in xrange(self.nnvecs)]
             for p in range(1, len(sentence.predicates)):
                 predicate = sentence.predicates[p]
                 for arg in range(1, len(sentence.entries)):
                     try:
-                        #print 'before evaluate'
                         scores = self.__evaluate(sentence, predicate, arg)
-                        #print 'before best'
                         best = max(chain(*scores), key=itemgetter(2))
                         gold = sentence.entries[arg].predicateList[p]
                         predicted = best[0]
@@ -330,20 +322,12 @@ class SRLLSTM:
                     except:
                         print 'not able to process!'
                     if len(errs) > 50:
-                        #print 'backward'
                         eerrs = esum(errs)
-                        #print 'after esum'
-                        scalar_loss = eerrs.scalar_value()
                         eerrs.backward()
-                        #print 'after backward'
                         self.trainer.update()
-                        #print 'after update'
                         errs = []
-                        #print 'renew cg'
                         renew_cg()
-                        #print 'before new init'
                         self.Init()
-
 
         if len(errs) > 0:
             eerrs = (esum(errs))  # * (1.0/(float(len(errs))))
