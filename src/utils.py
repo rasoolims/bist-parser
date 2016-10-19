@@ -78,7 +78,7 @@ def write_conll(fn, conll_structs):
     with codecs.open(fn, 'w') as fh:
         for conll_struct in conll_structs:
             for entry in conll_struct.entries:
-                #print entry
+                print entry
                 fh.write(entry)
                 fh.write('\n')
             fh.write('\n')
