@@ -238,7 +238,6 @@ class SRLLSTM:
                     rroot.bbvec = bbackward.output()
                 for root in sentence:
                     root.vec = concatenate([root.bfvec, root.bbvec])
-
         else:
             for root in sentence:
                 root.ivec = (self.word2lstm * root.ivec) + self.word2lstmbias
