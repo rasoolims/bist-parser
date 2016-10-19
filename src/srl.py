@@ -199,7 +199,7 @@ class SRLLSTM:
             c = float(self.wordsCount.get(root.norm, 0))
             dropFlag = not train or (random.random() < (c / (0.25 + c)))
             root.wordvec = lookup(self.wordEmbeddings, int(self.vocab.get(root.norm, 0)) if dropFlag else 0)
-            root.lemmaVec = lookup(self.lemmaEmbeddings, int(self.vocab.get(root.lemmaNorm, 0)) if dropFlag else 0)
+            root.lemmaVec = lookup(self.lemmaEmbeddings, int(self.lemmas.get(root.lemmaNorm, 0)) if dropFlag else 0)
             root.posvec = lookup(self.posEmbedding, int(self.pos[root.pos])) if self.pdims > 0 else None
 
             if self.external_embedding is not None:
