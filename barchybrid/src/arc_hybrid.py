@@ -1,4 +1,4 @@
-from pycnn import *
+from dynet import *
 from utils import ParseForest, read_conll, write_conll
 from operator import itemgetter
 from itertools import chain
@@ -51,9 +51,9 @@ class ArcHybridLSTM:
             self.edim = len(self.external_embedding.values()[0])
             self.noextrn = [0.0 for _ in xrange(self.edim)]
             self.extrnd = {word: i + 3 for i, word in enumerate(self.external_embedding)}
-            self.model.add_lookup_parameters("extrn-lookup", (len(self.external_embedding) + 3, self.edim))
+            self.extrn_lookup = self.model.add_lookup_parameters((len(self.external_embedding) + 3, self.edim))
             for word, i in self.extrnd.iteritems():
-                self.model["extrn-lookup"].init_row(i, self.external_embedding[word])
+                self.extrn_lookup.init_row(i, self.external_embedding[word])
             self.extrnd['*PAD*'] = 1
             self.extrnd['*INITIAL*'] = 2
 
@@ -84,36 +84,34 @@ class ArcHybridLSTM:
         self.vocab['*INITIAL*'] = 2
         self.pos['*INITIAL*'] = 2
 
-        self.model.add_lookup_parameters("word-lookup", (len(words) + 3, self.wdims))
-        self.model.add_lookup_parameters("pos-lookup", (len(pos) + 3, self.pdims))
-        self.model.add_lookup_parameters("rels-lookup", (len(rels), self.rdims))
-        self.model.add_lookup_parameters("lang-lookup", (len(langs), self.langdims))
+        self.word_lookup = self.model.add_lookup_parameters((len(words) + 3, self.wdims))
+        self.pos_lookup = self.model.add_lookup_parameters((len(pos) + 3, self.pdims))
+        self.rels_lookup = self.model.add_lookup_parameters((len(rels), self.rdims))
+        self.lang_lookup = self.model.add_lookup_parameters((len(langs), self.langdims))
 
-        self.model.add_parameters("word-to-lstm", (
-            self.ldims, self.wdims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
-        self.model.add_parameters("word-to-lstm-bias", (self.ldims))
-        self.model.add_parameters("lstm-to-lstm", (self.ldims, self.ldims * self.nnvecs + self.rdims))
-        self.model.add_parameters("lstm-to-lstm-bias", (self.ldims))
+        self.word2lstm_ = self.model.add_parameters((self.ldims, self.wdims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
+        self.word2lstmbias_ = self.model.add_parameters((self.ldims))
+        self.lstm2lstm_ = self.model.add_parameters((self.ldims, self.ldims * self.nnvecs + self.rdims))
+        self.lstm2lstmbias_ = self.model.add_parameters((self.ldims))
 
-        self.model.add_parameters("hidden-layer", (self.hidden_units, self.ldims * self.nnvecs * (self.k + 1) + self.langdims))
-        self.model.add_parameters("hidden-bias", (self.hidden_units))
+        self.hidLayer_ = self.model.add_parameters((self.hidden_units, self.ldims * self.nnvecs * (self.k + 1) + self.langdims))
+        self.hidBias_ = self.model.add_parameters((self.hidden_units))
 
-        self.model.add_parameters("hidden2-layer", (self.hidden2_units, self.hidden_units))
-        self.model.add_parameters("hidden2-bias", (self.hidden2_units))
+        self.hid2Layer_ = self.model.add_parameters((self.hidden2_units, self.hidden_units))
+        self.hid2Bias_ = self.model.add_parameters((self.hidden2_units))
 
-        self.model.add_parameters("output-layer",
-                                  (3, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
-        self.model.add_parameters("output-bias", (3))
+        self.outLayer_ = self.model.add_parameters((3, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
+        self.outBias_ = self.model.add_parameters((3))
 
-        self.model.add_parameters("rhidden-layer", (self.hidden_units, self.ldims * self.nnvecs * (self.k + 1)+ self.langdims))
-        self.model.add_parameters("rhidden-bias", (self.hidden_units))
+        self.rhidLayer_ = self.model.add_parameters((self.hidden_units, self.ldims * self.nnvecs * (self.k + 1)+ self.langdims))
+        self.rhidBias_ = self.model.add_parameters((self.hidden_units))
 
-        self.model.add_parameters("rhidden2-layer", (self.hidden2_units, self.hidden_units))
-        self.model.add_parameters("rhidden2-bias", (self.hidden2_units))
+        self.rhid2Layer_ = self.model.add_parameters((self.hidden2_units, self.hidden_units))
+        self.rhid2Bias_ = self.model.add_parameters((self.hidden2_units))
 
-        self.model.add_parameters("routput-layer", (
+        self.routLayer_ = self.model.add_parameters((
             2 * (len(self.irels) + 0) + 1, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
-        self.model.add_parameters("routput-bias", (2 * (len(self.irels) + 0) + 1))
+        self.routBias_ = self.model.add_parameters((2 * (len(self.irels) + 0) + 1))
 
     def __evaluate(self, stack, buf, langVector, train):
         topStack = [stack.roots[-i - 1].lstms if len(stack) > i else [self.empty] for i in xrange(self.k)]
@@ -166,31 +164,31 @@ class ArcHybridLSTM:
         self.model.load(filename)
 
     def Init(self):
-        self.word2lstm = parameter(self.model["word-to-lstm"])
-        self.lstm2lstm = parameter(self.model["lstm-to-lstm"])
+        self.word2lstm = parameter(self.word2lstm_)
+        self.lstm2lstm = parameter(self.lstm2lstm_)
 
-        self.word2lstmbias = parameter(self.model["word-to-lstm-bias"])
-        self.lstm2lstmbias = parameter(self.model["lstm-to-lstm-bias"])
+        self.word2lstmbias = parameter(self.word2lstmbias_)
+        self.lstm2lstmbias = parameter(self.lstm2lstmbias_)
 
-        self.hid2Layer = parameter(self.model["hidden2-layer"])
-        self.hidLayer = parameter(self.model["hidden-layer"])
-        self.outLayer = parameter(self.model["output-layer"])
+        self.hid2Layer = parameter(self.hid2Layer_)
+        self.hidLayer = parameter(self.hidLayer_)
+        self.outLayer = parameter(self.outLayer_)
 
-        self.hid2Bias = parameter(self.model["hidden2-bias"])
-        self.hidBias = parameter(self.model["hidden-bias"])
-        self.outBias = parameter(self.model["output-bias"])
+        self.hid2Bias = parameter(self.hid2Bias_)
+        self.hidBias = parameter(self.hidBias_)
+        self.outBias = parameter(self.outBias_)
 
-        self.rhid2Layer = parameter(self.model["rhidden2-layer"])
-        self.rhidLayer = parameter(self.model["rhidden-layer"])
-        self.routLayer = parameter(self.model["routput-layer"])
+        self.rhid2Layer = parameter(self.rhid2Layer_)
+        self.rhidLayer = parameter(self.rhidLayer_)
+        self.routLayer = parameter(self.routLayer_)
 
-        self.rhid2Bias = parameter(self.model["rhidden2-bias"])
-        self.rhidBias = parameter(self.model["rhidden-bias"])
-        self.routBias = parameter(self.model["routput-bias"])
+        self.rhid2Bias = parameter(self.rhid2Bias_)
+        self.rhidBias = parameter(self.rhidBias_)
+        self.routBias = parameter(self.routBias_)
 
-        evec = lookup(self.model["extrn-lookup"], 1) if self.external_embedding is not None else None
-        paddingWordVec = lookup(self.model["word-lookup"], 1)
-        paddingPosVec = lookup(self.model["pos-lookup"], 1) if self.pdims > 0 else None
+        evec = lookup(self.extrn_lookup, 1) if self.external_embedding is not None else None
+        paddingWordVec = lookup(self.word_lookup, 1)
+        paddingPosVec = lookup(self.pos_lookup, 1) if self.pdims > 0 else None
 
         paddingVec = tanh(
             self.word2lstm * concatenate(filter(None, [paddingWordVec, paddingPosVec, evec])) + self.word2lstmbias)
@@ -200,18 +198,18 @@ class ArcHybridLSTM:
         for root in sentence:
             c = float(self.wordsCount.get(root.norm, 0))
             dropFlag = not train or (random.random() < (c / (0.25 + c)))
-            root.wordvec = lookup(self.model["word-lookup"], int(self.vocab.get(root.norm, 0)) if dropFlag else 0)
-            root.posvec = lookup(self.model["pos-lookup"], int(self.pos[root.pos])) if self.pdims > 0 else None
+            root.wordvec = lookup(self.word_lookup, int(self.vocab.get(root.norm, 0)) if dropFlag else 0)
+            root.posvec = lookup(self.pos_lookup, int(self.pos[root.pos])) if self.pdims > 0 else None
 
             if self.external_embedding is not None:
                 if not dropFlag and random.random() < 0.5:
-                    root.evec = lookup(self.model["extrn-lookup"], 0)
+                    root.evec = lookup(self.extrn_lookup, 0)
                 elif root.form in self.external_embedding:
-                    root.evec = lookup(self.model["extrn-lookup"], self.extrnd[root.form], update=True)
+                    root.evec = lookup(self.extrn_lookup, self.extrnd[root.form], update=True)
                 elif root.norm in self.external_embedding:
-                    root.evec = lookup(self.model["extrn-lookup"], self.extrnd[root.norm], update=True)
+                    root.evec = lookup(self.extrn_lookup, self.extrnd[root.norm], update=True)
                 else:
-                    root.evec = lookup(self.model["extrn-lookup"], 0)
+                    root.evec = lookup(self.extrn_lookup, 0)
             else:
                 root.evec = None
             root.ivec = concatenate(filter(None, [root.wordvec, root.posvec, root.evec]))
@@ -243,7 +241,7 @@ class ArcHybridLSTM:
             for root in sentence:
                 root.ivec = (self.word2lstm * root.ivec) + self.word2lstmbias
                 root.vec = tanh(root.ivec)
-        langVec = concatenate(filter(None, [lookup(self.model["lang-lookup"], int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None]))
+        langVec = concatenate(filter(None, [lookup(self.lang_lookup, int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None]))
         return langVec
 
     def Predict(self, conll_path):
