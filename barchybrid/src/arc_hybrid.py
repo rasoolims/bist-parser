@@ -18,6 +18,8 @@ class ArcHybridLSTM:
         self.activations = {'tanh': tanh, 'sigmoid': logistic, 'relu': rectify,
                             'tanh3': (lambda x: tanh(cwise_multiply(cwise_multiply(x, x), x)))}
         self.activation = self.activations[options.activation]
+        self.dropout_prob = options.dropout
+        print 'dropout prob', self.dropout_prob
 
         self.oracle = options.oracle
         self.ldims = options.lstm_dims * 2
@@ -118,17 +120,23 @@ class ArcHybridLSTM:
         topBuffer = [buf.roots[i].lstms if len(buf) > i else [self.empty] for i in xrange(1)]
         input = concatenate([langVector,concatenate(list(chain(*(topStack + topBuffer))))])
 
+        rh_dropped = dropout(self.rhidLayer, self.dropout_prob)
+        rh2_dropped = dropout(self.rhid2Layer, self.dropout_prob)
+
         if self.hidden2_units > 0:
-            routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
-                self.rhidLayer * input + self.rhidBias)) + self.routBias)
+            routput = (self.routLayer * self.activation(self.rhid2Bias + self.rh2_dropped * self.activation(
+                self.rh_dropped * input + self.rhidBias)) + self.routBias)
         else:
-            routput = (self.routLayer * self.activation(self.rhidLayer * input + self.rhidBias) + self.routBias)
+            routput = (self.routLayer * self.activation(self.rh_dropped * input + self.rhidBias) + self.routBias)
+
+        h_dropped = dropout(self.hidLayer, self.dropout_prob)
+        h2_dropped = dropout(self.hid2Layer, self.dropout_prob)
 
         if self.hidden2_units > 0:
             output = (self.outLayer * self.activation(
-                self.hid2Bias + self.hid2Layer * self.activation(self.hidLayer * input + self.hidBias)) + self.outBias)
+                self.hid2Bias + self.h2_dropped * self.activation(self.h_dropped * input + self.hidBias)) + self.outBias)
         else:
-            output = (self.outLayer * self.activation(self.hidLayer * input + self.hidBias) + self.outBias)
+            output = (self.outLayer * self.activation(self.h_dropped * input + self.hidBias) + self.outBias)
 
         scrs, uscrs = routput.value(), output.value()
 
