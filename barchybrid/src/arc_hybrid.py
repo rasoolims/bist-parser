@@ -34,6 +34,7 @@ class ArcHybridLSTM:
         self.rels = {word: ind for ind, word in enumerate(rels)}
         self.langs = {word: ind for ind, word in enumerate(langs)}
         self.irels = rels
+        self.actionDim = options.action_dim
 
         self.headFlag = options.headFlag
         self.rlMostFlag = options.rlMostFlag
@@ -78,6 +79,8 @@ class ArcHybridLSTM:
                 self.surfaceBuilders = [SimpleRNNBuilder(1, dims, self.ldims * 0.5, self.model),
                                         LSTMBuilder(1, dims, self.ldims * 0.5, self.model)]
 
+        self.transition_lstm = LSTMBuilder(1, 3*self.ldims + self.actionDim, self.ldims * 0.5, self.model)
+
         self.hidden_units = options.hidden_units
         self.hidden2_units = options.hidden2_units
         self.vocab['*PAD*'] = 1
@@ -90,6 +93,7 @@ class ArcHybridLSTM:
         self.pos_lookup = self.model.add_lookup_parameters((len(pos) + 3, self.pdims))
         self.rels_lookup = self.model.add_lookup_parameters((len(rels), self.rdims))
         self.lang_lookup = self.model.add_lookup_parameters((len(langs), self.langdims))
+        self.action_lookup = self.model.add_lookup_parameters((2 * (len(self.irels) + 0) + 1, self.actionDim))
 
         self.word2lstm_ = self.model.add_parameters((self.ldims, self.wdims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
         self.word2lstmbias_ = self.model.add_parameters((self.ldims))
@@ -114,6 +118,9 @@ class ArcHybridLSTM:
         self.routLayer_ = self.model.add_parameters((
             2 * (len(self.irels) + 0) + 1, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
         self.routBias_ = self.model.add_parameters((2 * (len(self.irels) + 0) + 1))
+
+        self.trans_outLayer_ = self.model.add_parameters((2, self.lang_lookup + self.ldims*.5))
+        self.trans_outBias_ = self.model.add_parameters((2))
 
     def __evaluate(self, stack, buf, langVector, train):
         topStack = [stack.roots[-i - 1].lstms if len(stack) > i else [self.empty] for i in xrange(self.k)]
@@ -161,9 +168,52 @@ class ArcHybridLSTM:
                    [(r2, 1, s2)] if len(stack) > 1 else [],
                    [(None, 2, scrs[0] + uscrs0)] if len(buf) > 0 else []]
         return ret
-        # return [ [ (rel, 0, scrs[1 + j * 2 + 0] + uscrs[1], routput[1 + j * 2 + 0] + output[1]) for j, rel in enumerate(self.irels) ] if len(stack) > 0 and len(buf) > 0 else [],
-        #         [ (rel, 1, scrs[1 + j * 2 + 1] + uscrs[2], routput[1 + j * 2 + 1] + output[2]) for j, rel in enumerate(self.irels) ] if len(stack) > 1 else [],  
-        #         [ (None, 2, scrs[0] + uscrs[0], routput[0] + output[0]) ] if len(buf) > 0 else [] ]
+
+    def __evaluate_transitions(self, sentence, langVector):
+        stack = ParseForest([])
+        buf = ParseForest(sentence)
+        trans_vec = self.transition_lstm.initial_state()
+
+        while len(buf) > 0 or len(stack) > 1:
+            s1 = [stack.roots[-2]] if len(stack) > 1 else []
+            s0 = [stack.roots[-1]] if len(stack) > 0 else []
+            b = [buf.roots[0]] if len(buf) > 0 else []
+            beta = buf.roots[1:] if len(buf) > 1 else []
+            can_left = True if len(stack) > 0 and len(buf) > 0 else False
+            can_right = True if len(stack) > 1  else False
+
+            left_cost = (len([h for h in s1 + beta if h.id == s0[0].parent_id]) +
+                         len([d for d in b + beta if d.parent_id == s0[0].id])) if can_left else 1
+            right_cost = (len([h for h in b + beta if h.id == s0[0].parent_id]) +
+                          len([d for d in b + beta if d.parent_id == s0[0].id])) if can_right else 1
+
+            topStack = [stack.roots[-i - 1].lstms if len(stack) > i else [self.empty] for i in xrange(2)]
+            topBuffer = [buf.roots[i].lstms if len(buf) > i else [self.empty] for i in xrange(1)]
+
+            selected_action = 1 if left_cost==0 else 2 if right_cost==0 else 0
+            label = '' if selected_action==0 else sentence[buf.roots[0]].relation if selected_action == 1 else sentence[stack.roots[-1]].relation
+            gold_action = 0 if selected_action == 0 else (selected_action-1)*len(self.rels)+self.rels[label]
+            action_vec = lookup(self.action_lookup, gold_action)
+            input = concatenate([action_vec, concatenate(list(chain(*(topStack + topBuffer))))])
+            trans_vec = trans_vec.add_input(input)
+
+            if selected_action == 0:
+                stack.roots.append(buf.roots[0])
+                del buf.roots[0]
+
+            elif selected_action == 1:
+                child = stack.roots.pop()
+                parent = buf.roots[0]
+                child.pred_parent_id = parent.id
+                child.pred_relation = label
+
+            elif selected_action == 2:
+                child = stack.roots.pop()
+                parent = stack.roots[-1]
+                child.pred_parent_id = parent.id
+                child.pred_relation = label
+
+        return softmax(self.trans_outLayer * concatenate([langVector, trans_vec.output()]) + self.trans_outBias)
 
     def Save(self, filename):
         self.model.save(filename)
@@ -193,6 +243,9 @@ class ArcHybridLSTM:
         self.rhid2Bias = parameter(self.rhid2Bias_)
         self.rhidBias = parameter(self.rhidBias_)
         self.routBias = parameter(self.routBias_)
+
+        self.trans_outLayer = parameter(self.trans_outLayer_)
+        self.trans_outBias = parameter(self.trans_outBias_)
 
         evec = lookup(self.extrn_lookup, 1) if self.external_embedding is not None else None
         paddingWordVec = lookup(self.word_lookup, 1)
@@ -343,6 +396,7 @@ class ArcHybridLSTM:
                 langVector = self.getWordEmbeddings(sentence, True)
                 stack = ParseForest([])
                 buf = ParseForest(sentence)
+                confidence = self.__evaluate_transitions(sentence, langVector)[0]
 
                 for root in sentence:
                     root.lstms = [root.vec for _ in xrange(self.nnvecs)]
@@ -408,7 +462,7 @@ class ArcHybridLSTM:
 
                     if bestValid[2] < bestWrong[2] + 1.0:
                         # added the actual weight for loss here
-                        loss = scalarInput(sentence[0].weight) * (bestWrong[3] - bestValid[3])
+                        loss = confidence * (bestWrong[3] - bestValid[3])
                         mloss += 1.0 + bestWrong[2] - bestValid[2]
                         eloss += 1.0 + bestWrong[2] - bestValid[2]
                         errs.append(loss)
@@ -448,6 +502,75 @@ class ArcHybridLSTM:
         self.trainer.update_epoch()
         print "Loss: ", mloss / iSentence
 
+    def TrainConfidence(self, conll_path):
+        mloss = 0.0
+        errors = 0
+        batch = 0
+        eloss = 0.0
+        eerrors = 0
+        lerrors = 0
+        etotal = 0
+        ltotal = 0
+        ninf = -float('inf')
+
+        start = time.time()
+
+        with open(conll_path, 'r') as conllFP:
+            shuffledData = list(read_conll(conllFP, True))
+            random.shuffle(shuffledData)
+
+            errs = []
+            eeloss = 0.0
+
+            self.Init()
+
+            for iSentence, sentence in enumerate(shuffledData):
+                if iSentence % 100 == 0 and iSentence != 0:
+                    print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Errors:', (float(
+                        eerrors)) / etotal, 'Labeled Errors:', (float(lerrors) / etotal), 'Time', time.time() - start, 'weight',sentence[0].weight
+                    start = time.time()
+                    eerrors = 0
+                    eloss = 0.0
+                    etotal = 0
+                    lerrors = 0
+                    ltotal = 0
+
+                sentence = sentence[1:] + [sentence[0]]
+                langVector = self.getWordEmbeddings(sentence, True)
+
+                for root in sentence:
+                    root.lstms = [root.vec for _ in xrange(self.nnvecs)]
+
+                result = self.__evaluate_transitions(sentence, langVector)
+                extrinsic_weight = scalarInput(sentence[0].weight)
+                loss = extrinsic_weight * log(extrinsic_weight/result[0])
+                errs.append(loss)
+
+                if len(errs) > 50:  # or True:
+                    # eerrs = ((esum(errs)) * (1.0/(float(len(errs)))))
+                    eerrs = esum(errs)
+                    scalar_loss = eerrs.scalar_value()
+                    eerrs.backward()
+                    self.trainer.update()
+                    errs = []
+                    lerrs = []
+
+                    renew_cg()
+                    self.Init()
+
+        if len(errs) > 0:
+            eerrs = (esum(errs))  # * (1.0/(float(len(errs))))
+            eerrs.scalar_value()
+            eerrs.backward()
+            self.trainer.update()
+
+            errs = []
+            lerrs = []
+
+            renew_cg()
+
+        self.trainer.update_epoch()
+        print "Loss: ", mloss / iSentence
 
     def PredictPartial(self, conll_path):
         ninf = -float('inf')
