@@ -189,6 +189,7 @@ class ArcHybridLSTM:
 
             topStack = [stack.roots[-i - 1].lstms if len(stack) > i else [self.empty] for i in xrange(2)]
             topBuffer = [buf.roots[i].lstms if len(buf) > i else [self.empty] for i in xrange(1)]
+            print topStack, topBuffer
 
             selected_action = 1 if left_cost==0 else 2 if right_cost==0 else 0
             label = '' if selected_action==0 else sentence[buf.roots[0]].relation if selected_action == 1 else sentence[stack.roots[-1]].relation
