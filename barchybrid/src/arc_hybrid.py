@@ -119,7 +119,7 @@ class ArcHybridLSTM:
             2 * (len(self.irels) + 0) + 1, self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
         self.routBias_ = self.model.add_parameters((2 * (len(self.irels) + 0) + 1))
 
-        self.trans_outLayer_ = self.model.add_parameters((2, self.lang_lookup + self.ldims*.5))
+        self.trans_outLayer_ = self.model.add_parameters((2, self.langdims + self.ldims*.5))
         self.trans_outBias_ = self.model.add_parameters((2))
 
     def __evaluate(self, stack, buf, langVector, train):
