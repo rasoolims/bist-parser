@@ -194,6 +194,7 @@ class ArcHybridLSTM:
             label = '' if selected_action==0 else sentence[buf.roots[0]].relation if selected_action == 1 else sentence[stack.roots[-1]].relation
             gold_action = 0 if selected_action == 0 else (selected_action-1)*len(self.rels)+self.rels[label]
             action_vec = lookup(self.action_lookup, gold_action)
+            print action_vec,topStack,topBuffer
             input = concatenate([action_vec, concatenate(list(chain(*(topStack + topBuffer))))])
             trans_vec = trans_vec.add_input(input)
 
