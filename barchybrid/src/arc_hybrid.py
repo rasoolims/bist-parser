@@ -512,6 +512,7 @@ class ArcHybridLSTM:
         eloss = 0.0
         etotal = 0
         start = time.time()
+        distance = 0
         with open(conll_path, 'r') as conllFP:
             shuffledData = list(read_conll(conllFP, True))
             random.shuffle(shuffledData)
@@ -520,10 +521,11 @@ class ArcHybridLSTM:
 
             for iSentence, sentence in enumerate(shuffledData):
                 if iSentence % 100 == 0 and iSentence != 0:
-                    print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Time', time.time() - start
+                    print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Distance:',distance/etotal, 'Time', time.time() - start
                     start = time.time()
                     eloss = 0.0
                     etotal = 0
+                    distance = 0
 
                 sentence = sentence[1:] + [sentence[0]]
                 langVector = self.getWordEmbeddings(sentence, True)
@@ -540,6 +542,7 @@ class ArcHybridLSTM:
                 loss = extrinsic_weight * (log(extrinsic_weight)-log(result[0]+eps)) + other_weight * (log(other_weight)-log(result[1]+eps))
                 eloss += loss.value()
                 errs.append(loss)
+                distance+= abs(sentence[0].weight - result[0].value())
                 etotal+=1
 
                 if len(errs) > 50:  # or True:
