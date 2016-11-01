@@ -361,6 +361,8 @@ class ArcHybridLSTM:
                 yield [sentence[-1]] + sentence[:-1]
 
     def Train(self, conll_path):
+        self.trans_outLayer_.set_updated(False)
+        self.trans_outBias_.set_updated(False)
         mloss = 0.0
         errors = 0
         batch = 0
@@ -508,6 +510,9 @@ class ArcHybridLSTM:
         print "Loss: ", mloss / iSentence
 
     def TrainConfidence(self, conll_path):
+        self.trans_outLayer_.set_updated(True)
+        self.trans_outBias_.set_updated(True)
+
         mloss = 0.0
         eloss = 0.0
         etotal = 0
