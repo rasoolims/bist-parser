@@ -548,7 +548,6 @@ class ArcHybridLSTM:
                     eerrs.backward()
                     self.trainer.update()
                     errs = []
-                    etotal = 0
                     renew_cg()
                     self.Init()
 
