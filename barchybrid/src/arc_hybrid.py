@@ -509,35 +509,21 @@ class ArcHybridLSTM:
 
     def TrainConfidence(self, conll_path):
         mloss = 0.0
-        errors = 0
-        batch = 0
         eloss = 0.0
-        eerrors = 0
-        lerrors = 0
         etotal = 0
-        ltotal = 0
-        ninf = -float('inf')
-
         start = time.time()
-
         with open(conll_path, 'r') as conllFP:
             shuffledData = list(read_conll(conllFP, True))
             random.shuffle(shuffledData)
-
             errs = []
-            eeloss = 0.0
-
             self.Init()
 
             for iSentence, sentence in enumerate(shuffledData):
                 if iSentence % 100 == 0 and iSentence != 0:
                     print 'Processing sentence number:', iSentence, 'Loss:', eloss / etotal, 'Time', time.time() - start
                     start = time.time()
-                    eerrors = 0
                     eloss = 0.0
                     etotal = 0
-                    lerrors = 0
-                    ltotal = 0
 
                 sentence = sentence[1:] + [sentence[0]]
                 langVector = self.getWordEmbeddings(sentence, True)
@@ -559,7 +545,6 @@ class ArcHybridLSTM:
                 if len(errs) > 50:  # or True:
                     # eerrs = ((esum(errs)) * (1.0/(float(len(errs)))))
                     eerrs = esum(errs)
-                    scalar_loss = eerrs.scalar_value()
                     eerrs.backward()
                     self.trainer.update()
                     errs = []
