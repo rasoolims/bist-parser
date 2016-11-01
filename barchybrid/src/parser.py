@@ -27,7 +27,7 @@ if __name__ == '__main__':
     parser.add_option("--activation", type="string", dest="activation", default="tanh")
     parser.add_option("--lstmlayers", type="int", dest="lstm_layers", default=2)
     parser.add_option("--lstmdims", type="int", dest="lstm_dims", default=200)
-    parser.add_option("--cnn-seed", type="int", dest="seed", default=7)
+    parser.add_option("--dynet-seed", type="int", dest="seed", default=7)
     parser.add_option("--disableoracle", action="store_false", dest="oracle", default=True)
     parser.add_option("--disableblstm", action="store_false", dest="blstmFlag", default=True)
     parser.add_option("--bibi-lstm", action="store_true", dest="bibiFlag", default=False)
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     parser.add_option("--userl", action="store_true", dest="rlMostFlag", default=False)
     parser.add_option("--predict", action="store_true", dest="predictFlag", default=False)
     parser.add_option("--partial", action="store_true", dest="partialFlag", default=False)
-    parser.add_option("--cnn-mem", type="int", dest="cnn_mem", default=512)
+    parser.add_option("--dynet-mem", type="int", dest="cnn_mem", default=512)
     parser.add_option("--drop-out", type="float", dest="dropout", default=0)
 
     (options, args) = parser.parse_args()
