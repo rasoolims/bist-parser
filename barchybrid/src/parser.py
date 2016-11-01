@@ -36,7 +36,7 @@ if __name__ == '__main__':
     parser.add_option("--userl", action="store_true", dest="rlMostFlag", default=False)
     parser.add_option("--predict", action="store_true", dest="predictFlag", default=False)
     parser.add_option("--partial", action="store_true", dest="partialFlag", default=False)
-    parser.add_option("--dynet-mem", type="int", dest="cnn_mem", default=512)
+    parser.add_option("--dynet_mem", type="int", dest="dynet_mem", default=512)
     parser.add_option("--drop-out", type="float", dest="dropout", default=0)
 
     (options, args) = parser.parse_args()
