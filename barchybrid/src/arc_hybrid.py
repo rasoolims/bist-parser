@@ -545,6 +545,7 @@ class ArcHybridLSTM:
                 if len(errs) > 50:  # or True:
                     # eerrs = ((esum(errs)) * (1.0/(float(len(errs)))))
                     eerrs = esum(errs)
+                    scalar_loss = eerrs.scalar_value()
                     eerrs.backward()
                     self.trainer.update()
                     errs = []
