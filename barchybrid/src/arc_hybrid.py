@@ -13,6 +13,8 @@ class ArcHybridLSTM:
     def __init__(self, words, pos, rels, langs, w2i, options):
         self.model = Model()
         self.trainer = AdamTrainer(self.model)
+        self.use_confidence = options.useconf
+        print 'using confidence', self.use_confidence
         random.seed(1)
 
         self.activations = {'tanh': tanh, 'sigmoid': logistic, 'relu': rectify,
@@ -408,7 +410,7 @@ class ArcHybridLSTM:
 
                     if bestValid[2] < bestWrong[2] + 1.0:
                         # added the actual weight for loss here
-                        loss = scalarInput(sentence[0].weight) * (bestWrong[3] - bestValid[3])
+                        loss = scalarInput(sentence[0].weight) * (bestWrong[3] - bestValid[3]) if self.use_confidence else (bestWrong[3] - bestValid[3])
                         mloss += 1.0 + bestWrong[2] - bestValid[2]
                         eloss += 1.0 + bestWrong[2] - bestValid[2]
                         errs.append(loss)
