@@ -122,23 +122,23 @@ class ArcHybridLSTM:
         topBuffer = [buf.roots[i].lstms if len(buf) > i else [self.empty] for i in xrange(1)]
         input = concatenate([langVector,concatenate(list(chain(*(topStack + topBuffer))))])
 
-        rh_dropped = dropout(self.rhidLayer, self.dropout_prob)
-        rh2_dropped = dropout(self.rhid2Layer, self.dropout_prob)
+        #rh_dropped = dropout(self.rhidLayer, self.dropout_prob)
+        #rh2_dropped = dropout(self.rhid2Layer, self.dropout_prob)
 
         if self.hidden2_units > 0:
-            routput = (self.routLayer * self.activation(self.rhid2Bias + rh2_dropped * self.activation(
-                rh_dropped * input + self.rhidBias)) + self.routBias)
+            routput = (self.routLayer * self.activation(self.rhid2Bias + self.rhid2Layer * self.activation(
+                self.rhidLayer * input + self.rhidBias)) + self.routBias)
         else:
-            routput = (self.routLayer * self.activation(rh_dropped * input + self.rhidBias) + self.routBias)
+            routput = (self.routLayer * self.activation(self.rhidLayer * input + self.rhidBias) + self.routBias)
 
-        h_dropped = dropout(self.hidLayer, self.dropout_prob)
-        h2_dropped = dropout(self.hid2Layer, self.dropout_prob)
+        #h_dropped = dropout(self.hidLayer, self.dropout_prob)
+        #h2_dropped = dropout(self.hid2Layer, self.dropout_prob)
 
         if self.hidden2_units > 0:
             output = (self.outLayer * self.activation(
-                self.hid2Bias + h2_dropped * self.activation(h_dropped * input + self.hidBias)) + self.outBias)
+                self.hid2Bias + self.hid2Layer * self.activation(self.hidLayer * input + self.hidBias)) + self.outBias)
         else:
-            output = (self.outLayer * self.activation(h_dropped * input + self.hidBias) + self.outBias)
+            output = (self.outLayer * self.activation(self.hidLayer * input + self.hidBias) + self.outBias)
 
         scrs, uscrs = routput.value(), output.value()
 
