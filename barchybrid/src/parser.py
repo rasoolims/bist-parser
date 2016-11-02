@@ -60,13 +60,6 @@ if __name__ == '__main__':
         for epoch in xrange(options.epochs):
             print 'Starting epoch for confidence', epoch
             parser.TrainConfidence(options.conll_train)
-            print 'Starting epoch for parsing', epoch
-            parser.Train(options.conll_train)
-            devpath = os.path.join(options.output, 'dev_epoch_' + str(epoch + 1) + '.conll')
-            if options.conll_dev!='':
-                utils.write_conll(devpath, parser.Predict(options.conll_dev))
-                os.system('perl src/utils/eval.pl -g ' + options.conll_dev + ' -s ' + devpath + ' > ' + devpath + '.txt &')
-                print 'Finished predicting dev'
             parser.Save(os.path.join(options.output, options.model + str(epoch + 1)))
     else:
         with open(options.params, 'r') as paramsfp:
