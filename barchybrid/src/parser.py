@@ -42,38 +42,17 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     print 'Using external embedding:', options.external_embedding
 
-    if not options.predictFlag:
-        if not (options.rlFlag or options.rlMostFlag or options.headFlag):
-            print 'You must use either --userlmost or --userl or --usehead (you can use multiple)'
-            sys.exit()
+    print 'Preparing vocab'
+    words, w2i, pos, rels, langs = utils.vocab(options.conll_train)
 
-        print 'Preparing vocab'
-        words, w2i, pos, rels, langs = utils.vocab(options.conll_train)
+    with open(os.path.join(options.output, options.params), 'w') as paramsfp:
+        pickle.dump((words, w2i, pos, rels, langs, options), paramsfp)
+    print 'Finished collecting vocab'
 
-        with open(os.path.join(options.output, options.params), 'w') as paramsfp:
-            pickle.dump((words, w2i, pos, rels, langs, options), paramsfp)
-        print 'Finished collecting vocab'
+    print 'Initializing blstm arc hybrid:'
+    parser = ArcHybridLSTM(words, pos, rels, langs, w2i, options)
 
-        print 'Initializing blstm arc hybrid:'
-        parser = ArcHybridLSTM(words, pos, rels, langs, w2i, options)
-
-        for epoch in xrange(options.epochs):
-            print 'Starting epoch for confidence', epoch
-            parser.TrainConfidence(options.conll_train)
-            parser.Save(os.path.join(options.output, options.model + str(epoch + 1)))
-    else:
-        with open(options.params, 'r') as paramsfp:
-            words, w2i, pos, rels, langs, stored_opt = pickle.load(paramsfp)
-
-        stored_opt.external_embedding = options.external_embedding
-
-        parser = ArcHybridLSTM(words, pos, rels, langs, w2i, stored_opt)
-        parser.Load(options.model)
-        tespath = os.path.join(options.output, 'test_pred.conll')
-        ts = time.time()
-
-        pred = list(parser.Predict(options.conll_test)) if (not options.partialFlag) else list(parser.PredictPartial(options.conll_test))
-        te = time.time()
-        utils.write_conll(tespath, pred)
-        os.system('perl src/utils/eval.pl -g ' + options.conll_test + ' -s ' + tespath + ' > ' + tespath + '.txt &')
-        print 'Finished predicting test', te - ts
+    for epoch in xrange(options.epochs):
+        print 'Starting epoch for confidence', epoch
+        parser.TrainConfidence(options.conll_train)
+        parser.Save(os.path.join(options.output, options.model + str(epoch + 1)))
