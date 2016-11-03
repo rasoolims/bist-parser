@@ -19,23 +19,13 @@ if __name__ == '__main__':
     parser.add_option("--action_dim", type="int", dest="action_dim", default=25)
     parser.add_option("--lang_embedding", type="int", dest="lang_embedding_dims", default=16)
     parser.add_option("--epochs", type="int", dest="epochs", default=30)
-    parser.add_option("--hidden", type="int", dest="hidden_units", default=100)
-    parser.add_option("--hidden2", type="int", dest="hidden2_units", default=0)
-    parser.add_option("--k", type="int", dest="window", default=3)
-    parser.add_option("--lr", type="float", dest="learning_rate", default=0.1)
     parser.add_option("--outdir", type="string", dest="output", default="results")
     parser.add_option("--activation", type="string", dest="activation", default="tanh")
     parser.add_option("--lstmlayers", type="int", dest="lstm_layers", default=2)
     parser.add_option("--lstmdims", type="int", dest="lstm_dims", default=200)
     parser.add_option("--dynet-seed", type="int", dest="seed", default=7)
-    parser.add_option("--disableoracle", action="store_false", dest="oracle", default=True)
-    parser.add_option("--disableblstm", action="store_false", dest="blstmFlag", default=True)
-    parser.add_option("--bibi-lstm", action="store_true", dest="bibiFlag", default=False)
     parser.add_option("--usehead", action="store_true", dest="headFlag", default=False)
-    parser.add_option("--userlmost", action="store_true", dest="rlFlag", default=False)
-    parser.add_option("--userl", action="store_true", dest="rlMostFlag", default=False)
     parser.add_option("--predict", action="store_true", dest="predictFlag", default=False)
-    parser.add_option("--partial", action="store_true", dest="partialFlag", default=False)
     parser.add_option("--dynet_mem", type="int", dest="dynet_mem", default=512)
     parser.add_option("--drop-out", type="float", dest="dropout", default=0)
 
@@ -55,4 +45,8 @@ if __name__ == '__main__':
     for epoch in xrange(options.epochs):
         print 'Starting epoch for confidence', epoch
         parser.TrainConfidence(options.conll_train)
+        print 'saving the model'
         parser.Save(os.path.join(options.output, options.model + str(epoch + 1)))
+        print 'output conll'
+        output_path = os.path.join(options.output, 'output_'+str(epoch)+'.conll')
+        utils.write_conll(output_path,  parser.Predict(options.conll_train))

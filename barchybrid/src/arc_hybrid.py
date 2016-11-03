@@ -21,7 +21,6 @@ class ArcHybridLSTM:
         self.dropout_prob = options.dropout
         print 'dropout prob', self.dropout_prob
 
-        self.oracle = options.oracle
         self.ldims = options.lstm_dims * 2
         self.wdims = options.wembedding_dims
         self.pdims = options.pembedding_dims
@@ -37,11 +36,8 @@ class ArcHybridLSTM:
         self.actionDim = options.action_dim
 
         self.headFlag = options.headFlag
-        self.rlMostFlag = options.rlMostFlag
-        self.rlFlag = options.rlFlag
-        self.k = options.window
 
-        self.nnvecs = (1 if self.headFlag else 0) + (2 if self.rlFlag or self.rlMostFlag else 0)
+        self.nnvecs = (1 if self.headFlag else 0) + 2
 
         self.external_embedding = None
         if options.external_embedding is not None:
@@ -63,25 +59,14 @@ class ArcHybridLSTM:
             print 'Load external embedding. Vector dimensions', self.edim
 
         dims = self.wdims + self.pdims + (self.edim if self.external_embedding is not None else 0)
-        self.blstmFlag = options.blstmFlag
-        self.bibiFlag = options.bibiFlag
 
-        if self.bibiFlag:
-            self.surfaceBuilders = [LSTMBuilder(1, dims, self.ldims * 0.5, self.model),
-                                    LSTMBuilder(1, dims, self.ldims * 0.5, self.model)]
-            self.bsurfaceBuilders = [LSTMBuilder(1, self.ldims, self.ldims * 0.5, self.model),
-                                     LSTMBuilder(1, self.ldims, self.ldims * 0.5, self.model)]
-        elif self.blstmFlag:
-            if self.layers > 0:
-                self.surfaceBuilders = [LSTMBuilder(self.layers, dims, self.ldims * 0.5, self.model),
-                                        LSTMBuilder(self.layers, dims, self.ldims * 0.5, self.model)]
-            else:
-                self.surfaceBuilders = [SimpleRNNBuilder(1, dims, self.ldims * 0.5, self.model),
-                                        LSTMBuilder(1, dims, self.ldims * 0.5, self.model)]
+        self.surfaceBuilders = [LSTMBuilder(1, dims, self.ldims * 0.5, self.model),
+                                LSTMBuilder(1, dims, self.ldims * 0.5, self.model)]
+        self.bsurfaceBuilders = [LSTMBuilder(1, self.ldims, self.ldims * 0.5, self.model),
+                                 LSTMBuilder(1, self.ldims, self.ldims * 0.5, self.model)]
+
         self.transition_lstm = LSTMBuilder(1, (3*self.ldims) + self.actionDim, self.ldims * 0.5, self.model)
 
-        self.hidden_units = options.hidden_units
-        self.hidden2_units = options.hidden2_units
         self.vocab['*PAD*'] = 1
         self.pos['*PAD*'] = 1
 
@@ -196,33 +181,28 @@ class ArcHybridLSTM:
                 root.evec = None
             root.ivec = concatenate(filter(None, [root.wordvec, root.posvec, root.evec]))
 
-        if self.blstmFlag:
-            forward = self.surfaceBuilders[0].initial_state()
-            backward = self.surfaceBuilders[1].initial_state()
+        forward = self.surfaceBuilders[0].initial_state()
+        backward = self.surfaceBuilders[1].initial_state()
 
-            for froot, rroot in zip(sentence, reversed(sentence)):
-                forward = forward.add_input(froot.ivec)
-                backward = backward.add_input(rroot.ivec)
-                froot.fvec = forward.output()
-                rroot.bvec = backward.output()
-            for root in sentence:
-                root.vec = concatenate([root.fvec, root.bvec])
+        for froot, rroot in zip(sentence, reversed(sentence)):
+            forward = forward.add_input(froot.ivec)
+            backward = backward.add_input(rroot.ivec)
+            froot.fvec = forward.output()
+            rroot.bvec = backward.output()
+        for root in sentence:
+            root.vec = concatenate([root.fvec, root.bvec])
 
-            if self.bibiFlag:
-                bforward = self.bsurfaceBuilders[0].initial_state()
-                bbackward = self.bsurfaceBuilders[1].initial_state()
+        bforward = self.bsurfaceBuilders[0].initial_state()
+        bbackward = self.bsurfaceBuilders[1].initial_state()
 
-                for froot, rroot in zip(sentence, reversed(sentence)):
-                    bforward = bforward.add_input(froot.vec)
-                    bbackward = bbackward.add_input(rroot.vec)
-                    froot.bfvec = bforward.output()
-                    rroot.bbvec = bbackward.output()
-                for root in sentence:
-                    root.vec = concatenate([root.bfvec, root.bbvec])
-        else:
-            for root in sentence:
-                root.ivec = (self.word2lstm * root.ivec) + self.word2lstmbias
-                root.vec = tanh(root.ivec)
+        for froot, rroot in zip(sentence, reversed(sentence)):
+            bforward = bforward.add_input(froot.vec)
+            bbackward = bbackward.add_input(rroot.vec)
+            froot.bfvec = bforward.output()
+            rroot.bbvec = bbackward.output()
+        for root in sentence:
+            root.vec = concatenate([root.bfvec, root.bbvec])
+       
         langVec = concatenate(filter(None, [lookup(self.lang_lookup, int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None]))
         return langVec
 
@@ -260,6 +240,7 @@ class ArcHybridLSTM:
                 other_weight = scalarInput(1.0 - sentence[0].weight)+eps
                 loss = extrinsic_weight * (log(extrinsic_weight)-log(result[0]+eps)) + other_weight * (log(other_weight)-log(result[1]+eps))
                 eloss += loss.value()
+                mloss += loss.value()
                 errs.append(loss)
                 distance+= abs(sentence[0].weight - result[0].value())
                 etotal+=1
@@ -286,3 +267,24 @@ class ArcHybridLSTM:
 
         self.trainer.update_epoch()
         print "Loss: ", mloss / iSentence
+
+    def Predict(self, conll_path):
+        with open(conll_path, 'r') as conllFP:
+            data = list(read_conll(conllFP, True))
+
+            for iSentence, sentence in enumerate(data):
+                self.Init()
+                sentence = sentence[1:] + [sentence[0]]
+                langVector = self.getWordEmbeddings(sentence, True)
+                stack = ParseForest([])
+                buf = ParseForest(sentence)
+                for root in sentence:
+                    root.lstms = [root.vec for _ in xrange(self.nnvecs)]
+                    root.raw_lstms = [root.vec]
+
+                result = self.__evaluate_transitions(stack, buf, langVector)
+
+                for s in sentence:
+                    s.weight = result[0].value()
+                renew_cg()
+                yield [sentence[-1]] + sentence[:-1]
