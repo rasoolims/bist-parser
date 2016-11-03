@@ -1,7 +1,6 @@
 from optparse import OptionParser
 from arc_hybrid import ArcHybridLSTM
 import pickle, utils, os, time, sys
-from utils import ParseForest, read_conll, write_conll
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -42,9 +41,6 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
     print 'Using external embedding:', options.external_embedding
-
-    shuffledData = list(read_conll(conllFP, True))
-    random.shuffle(shuffledData)
 
     print 'Preparing vocab'
     words, w2i, pos, rels, langs = utils.vocab(options.conll_train)
