@@ -36,6 +36,7 @@ if __name__ == '__main__':
     parser.add_option("--predict", action="store_true", dest="predictFlag", default=False)
     parser.add_option("--partial", action="store_true", dest="partialFlag", default=False)
     parser.add_option("--useconf", action="store_false", dest="useconf", default=True)
+    parser.add_option("--uselangid", action="store_false", dest="uselangid", default=True)
     parser.add_option("--cnn-mem", type="int", dest="cnn_mem", default=512)
     parser.add_option("--drop-out", type="float", dest="dropout", default=0)
 

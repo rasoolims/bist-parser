@@ -15,6 +15,7 @@ class ArcHybridLSTM:
         self.trainer = AdamTrainer(self.model)
         self.use_confidence = options.useconf
         print 'using confidence', self.use_confidence
+        self.uselangid = options.uselangid
         random.seed(1)
 
         self.activations = {'tanh': tanh, 'sigmoid': logistic, 'relu': rectify,
@@ -28,7 +29,7 @@ class ArcHybridLSTM:
         self.wdims = options.wembedding_dims
         self.pdims = options.pembedding_dims
         self.rdims = options.rembedding_dims
-        self.langdims = options.lang_embedding_dims
+        self.langdims = options.lang_embedding_dims if self.uselangid else 0
         self.layers = options.lstm_layers
         self.wordsCount = words
         self.vocab = {word: ind + 3 for word, ind in w2i.iteritems()}
@@ -91,7 +92,7 @@ class ArcHybridLSTM:
         self.word_lookup = self.model.add_lookup_parameters((len(words) + 3, self.wdims))
         self.pos_lookup = self.model.add_lookup_parameters((len(pos) + 3, self.pdims))
         self.rels_lookup = self.model.add_lookup_parameters((len(rels), self.rdims))
-        self.lang_lookup = self.model.add_lookup_parameters((len(langs), self.langdims))
+        self.lang_lookup = self.model.add_lookup_parameters((len(langs), self.langdims)) if self.uselangid else None
 
         self.word2lstm_ = self.model.add_parameters((self.ldims, self.wdims + self.pdims + (self.edim if self.external_embedding is not None else 0)))
         self.word2lstmbias_ = self.model.add_parameters((self.ldims))
@@ -120,7 +121,7 @@ class ArcHybridLSTM:
     def __evaluate(self, stack, buf, langVector, train):
         topStack = [stack.roots[-i - 1].lstms if len(stack) > i else [self.empty] for i in xrange(self.k)]
         topBuffer = [buf.roots[i].lstms if len(buf) > i else [self.empty] for i in xrange(1)]
-        input = concatenate([langVector,concatenate(list(chain(*(topStack + topBuffer))))])
+        input = concatenate([langVector,concatenate(list(chain(*(topStack + topBuffer))))]) if self.uselangid else concatenate(list(chain(*(topStack + topBuffer))))
 
         #rh_dropped = dropout(self.rhidLayer, self.dropout_prob)
         #rh2_dropped = dropout(self.rhid2Layer, self.dropout_prob)
@@ -251,7 +252,7 @@ class ArcHybridLSTM:
             for root in sentence:
                 root.ivec = (self.word2lstm * root.ivec) + self.word2lstmbias
                 root.vec = tanh(root.ivec)
-        langVec = concatenate(filter(None, [lookup(self.lang_lookup, int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None]))
+        langVec = concatenate(filter(None, [lookup(self.lang_lookup, int(self.langs[sentence[0].lang_id])) if self.langdims > 0 else None])) if self.uselangid else []
         return langVec
 
     def Predict(self, conll_path):
