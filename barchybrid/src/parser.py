@@ -1,5 +1,4 @@
 from optparse import OptionParser
-from arc_hybrid import ArcHybridLSTM
 import pickle, utils, os, time, sys
 
 if __name__ == '__main__':
@@ -37,10 +36,20 @@ if __name__ == '__main__':
     parser.add_option("--partial", action="store_true", dest="partialFlag", default=False)
     parser.add_option("--useconf", action="store_false", dest="useconf", default=True)
     parser.add_option("--uselangid", action="store_false", dest="uselangid", default=True)
-    parser.add_option("--cnn-mem", type="int", dest="cnn_mem", default=512)
+    parser.add_option("--mem", type="int", dest="mem", default=2024)
     parser.add_option("--drop-out", type="float", dest="dropout", default=0)
 
+    import _dynet as dy
     (options, args) = parser.parse_args()
+
+    dyparams = dy.DynetParams()
+    # Fetch the command line arguments (optional)
+    dyparams.from_args()
+    # Set some parameters manualy (see the command line arguments documentation)
+    dyparams.set_mem(options.mem)
+    dyparams.init()
+    from arc_hybrid import ArcHybridLSTM
+
     print 'Using external embedding:', options.external_embedding
 
     if not options.predictFlag:
