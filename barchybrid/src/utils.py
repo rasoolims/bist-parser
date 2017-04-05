@@ -75,7 +75,7 @@ def read_conll(fh, proj):
     for line in fh:
         tok = line.strip().split()
         if not tok:
-            if len(tokens) > 1:
+            if len(tokens) >= 1:
                 root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot', last_lang_id, last_weight)
                 tokens = [root] + tokens
                 if not proj or isProj(tokens):
@@ -94,7 +94,7 @@ def read_conll(fh, proj):
                 weight = 1
             last_weight = weight
             tokens.append(ConllEntry(int(tok[0]), tok[1], tok[3], int(tok[6]) if tok[6] != '_' else -1, tok[7], tok[5], weight))
-    if len(tokens) > 1:
+    if len(tokens) >= 1:
         root = ConllEntry(0, '*root*', 'ROOT-POS', 0, 'rroot', last_lang_id, last_weight)
         tokens = [root] + tokens
         yield tokens
