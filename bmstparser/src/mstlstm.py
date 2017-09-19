@@ -46,7 +46,7 @@ class MSTParserLSTM:
 
             print 'Load external embedding. Vector dimensions', self.edim
 
-        self.deep_lstms = BiRNNBuilder(self.layers, self.wdims + self.pdims + self.edim, self.ldims*2, self.model, VanillaLSTMBuilder)
+        self.deep_lstms = BiRNNBuilder(self.layers, self.wdims + self.pdims + self.edim+1, self.ldims*2, self.model, VanillaLSTMBuilder)
         self.hidden_units = options.hidden_units
         self.hidden2_units = options.hidden2_units
 
@@ -79,34 +79,26 @@ class MSTParserLSTM:
         self.routLayer = self.model.add_parameters((len(self.irels), self.hidden2_units if self.hidden2_units > 0 else self.hidden_units))
         self.routBias = self.model.add_parameters((len(self.irels)))
 
-    def  __getExpr(self, sentence, i, j, train):
-        if sentence[i].headfov is None:
-            sentence[i].headfov = self.hidLayerFOH.expr() * sentence[i].vec
-        if sentence[j].modfov is None:
-            sentence[j].modfov  = self.hidLayerFOM.expr() * sentence[j].vec
-
+    def  __getExpr(self, lstm_vecs, i, j):
+        inp = self.hidLayerFOH.expr() * lstm_vecs[i][i] + self.hidLayerFOM.expr() * lstm_vecs[i][j]
         if self.hidden2_units > 0:
-            output = self.outLayer.expr() * self.activation(self.hid2Bias.expr() + self.hid2Layer.expr() * self.activation(sentence[i].headfov + sentence[j].modfov + self.hidBias.expr())) # + self.outBias
+            output = self.outLayer.expr() * self.activation(self.hid2Bias.expr() + self.hid2Layer.expr() * self.activation(inp + self.hidBias.expr())) # + self.outBias
         else:
-            output = self.outLayer.expr() * self.activation(sentence[i].headfov + sentence[j].modfov + self.hidBias.expr()) # + self.outBias
+            output = self.outLayer.expr() * self.activation(inp + self.hidBias.expr()) # + self.outBias
 
         return output
 
-    def __evaluate(self, sentence, train):
-        exprs = [ [self.__getExpr(sentence, i, j, train) for j in xrange(len(sentence))] for i in xrange(len(sentence)) ]
+    def __evaluate(self, lstm_vecs):
+        exprs = [ [self.__getExpr(lstm_vecs, i, j) for j in xrange(len(lstm_vecs))] for i in xrange(len(lstm_vecs)) ]
         scores = np.array([ [output.scalar_value() for output in exprsRow] for exprsRow in exprs ])
         return scores, exprs
 
-    def __evaluateLabel(self, sentence, i, j):
-        if sentence[i].rheadfov is None:
-            sentence[i].rheadfov = self.rhidLayerFOH.expr() * sentence[i].vec
-        if sentence[j].rmodfov is None:
-            sentence[j].rmodfov  = self.rhidLayerFOM.expr() * sentence[j].vec
-
+    def __evaluateLabel(self, lstm_vecs, i, j):
+        inp_ =  self.rhidLayerFOH.expr() * lstm_vecs[i][i] + self.rhidLayerFOM.expr() *lstm_vecs[i][j]
         if self.hidden2_units > 0:
-            output = self.routLayer.expr() * self.activation(self.rhid2Bias.expr() + self.rhid2Layer.expr() * self.activation(sentence[i].rheadfov + sentence[j].rmodfov + self.rhidBias.expr())) + self.routBias.expr()
+            output = self.routLayer.expr() * self.activation(self.rhid2Bias.expr() + self.rhid2Layer.expr() * self.activation(inp_+ self.rhidBias.expr())) + self.routBias.expr()
         else:
-            output = self.routLayer.expr() * self.activation(sentence[i].rheadfov + sentence[j].rmodfov + self.rhidBias.expr()) + self.routBias.expr()
+            output = self.routLayer.expr() * self.activation(inp_+ self.rhidBias.expr()) + self.routBias.expr()
 
         return output.value(), output
 
@@ -117,6 +109,7 @@ class MSTParserLSTM:
         self.model.populate(filename)
 
     def Predict(self, conll_path):
+        self.deep_lstms.disable_dropout()
         with open(conll_path, 'r') as conllFP:
             for iSentence, sentence in enumerate(read_conll(conllFP)):
                 conll_sentence = [entry for entry in sentence if isinstance(entry, utils.ConllEntry)]
@@ -126,16 +119,13 @@ class MSTParserLSTM:
                     posvec = self.plookup[int(self.pos[entry.pos])] if self.pdims > 0 else None
                     evec = self.elookup[int(self.extrnd.get(entry.form, self.extrnd.get(entry.norm, 0)))] if self.external_embedding is not None else None
                     entry.vec = concatenate(filter(None, [wordvec, posvec, evec]))
-                    entry.headfov = None
-                    entry.modfov = None
-                    entry.rheadfov = None
-                    entry.rmodfov = None
 
-                lstm_vecs = self.deep_lstms.transduce([entry.vec for entry in conll_sentence])
-                for i, entry in enumerate(conll_sentence):
-                    entry.vec = lstm_vecs[i]
+                lstm_vecs = list()
+                for i in range(len(conll_sentence)):
+                    indicator = [scalarInput(1) if j ==i else scalarInput(0) for j in range(len(conll_sentence))]
+                    lstm_vecs.append(self.deep_lstms.transduce([concatenate([entry.vec, indicator[j]]) for j,entry in enumerate(conll_sentence)]))
 
-                scores, exprs = self.__evaluate(conll_sentence, True)
+                scores, exprs = self.__evaluate(lstm_vecs)
                 heads = decoder.parse_proj(scores)
 
                 for entry, head in zip(conll_sentence, heads):
@@ -144,7 +134,7 @@ class MSTParserLSTM:
 
                 dump = False
                 for modifier, head in enumerate(heads[1:]):
-                    scores, exprs = self.__evaluateLabel(conll_sentence, head, modifier+1)
+                    scores, exprs = self.__evaluateLabel(lstm_vecs, head, modifier+1)
                     conll_sentence[modifier+1].pred_relation = self.irels[max(enumerate(scores), key=itemgetter(1))[0]]
 
                 renew_cg()
@@ -193,24 +183,20 @@ class MSTParserLSTM:
                     if self.dropout:
                         entry.vec = dropout(entry.vec, self.dropout_prob)
 
-                    entry.headfov = None
-                    entry.modfov = None
+                if self.dropout:
+                    self.deep_lstms.set_dropout(self.dropout_prob)
+                lstm_vecs = list()
+                for i in range(len(conll_sentence)):
+                    indicator = [scalarInput(1) if j == i else scalarInput(0) for j in range(len(conll_sentence))]
+                    lstm = self.deep_lstms.transduce([concatenate([entry.vec, indicator[j]]) for j, entry in enumerate(conll_sentence)])
+                    lstm_vecs.append(lstm)
 
-                    entry.rheadfov = None
-                    entry.rmodfov = None
-
-                lstm_vecs = self.deep_lstms.transduce([entry.vec for entry in conll_sentence])
-                for i, entry in enumerate(conll_sentence):
-                    entry.vec = lstm_vecs[i]
-                    if self.dropout:
-                        entry.vec = dropout(entry.vec, self.dropout_prob)
-
-                scores, exprs = self.__evaluate(conll_sentence, True)
+                scores, exprs = self.__evaluate(lstm_vecs)
                 gold = [entry.parent_id for entry in conll_sentence]
                 heads = decoder.parse_proj(scores, gold if self.costaugFlag else None)
 
                 for modifier, head in enumerate(gold[1:]):
-                    rscores, rexprs = self.__evaluateLabel(conll_sentence, head, modifier+1)
+                    rscores, rexprs = self.__evaluateLabel(lstm_vecs, head, modifier+1)
                     goldLabelInd = self.rels[conll_sentence[modifier+1].relation]
                     wrongLabelInd = max(((l, scr) for l, scr in enumerate(rscores) if l != goldLabelInd), key=itemgetter(1))[0]
                     if rscores[goldLabelInd] < rscores[wrongLabelInd] + 1:
