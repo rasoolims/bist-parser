@@ -90,8 +90,8 @@ class MSTParserLSTM:
 
     def __evaluate(self, lstm_vecs):
         exprs = [ [self.__getExpr(lstm_vecs, i, j) for j in xrange(len(lstm_vecs))] for i in xrange(len(lstm_vecs)) ]
-        scores = np.array([ [output.scalar_value() for output in exprsRow] for exprsRow in exprs ])
-        return scores, exprs
+        # scores = np.array([ [output.scalar_value() for output in exprsRow] for exprsRow in exprs ])
+        return exprs
 
     def __evaluateLabel(self, lstm_vecs, i, j):
         inp_ =  self.rhidLayerFOH.expr() * lstm_vecs[i][i] + self.rhidLayerFOM.expr() *lstm_vecs[i][j]
@@ -99,8 +99,7 @@ class MSTParserLSTM:
             output = self.routLayer.expr() * self.activation(self.rhid2Bias.expr() + self.rhid2Layer.expr() * self.activation(inp_+ self.rhidBias.expr())) + self.routBias.expr()
         else:
             output = self.routLayer.expr() * self.activation(inp_+ self.rhidBias.expr()) + self.routBias.expr()
-
-        return output.value(), output
+        return output
 
     def Save(self, filename):
         self.model.save(filename)
@@ -125,7 +124,8 @@ class MSTParserLSTM:
                     indicator = [scalarInput(1) if j ==i else scalarInput(0) for j in range(len(conll_sentence))]
                     lstm_vecs.append(self.deep_lstms.transduce([concatenate([entry.vec, indicator[j]]) for j,entry in enumerate(conll_sentence)]))
 
-                scores, exprs = self.__evaluate(lstm_vecs)
+                exprs = self.__evaluate(lstm_vecs)
+                scores = np.array([[output.scalar_value() for output in exprsRow] for exprsRow in exprs])
                 heads = decoder.parse_proj(scores)
 
                 for entry, head in zip(conll_sentence, heads):
@@ -134,7 +134,8 @@ class MSTParserLSTM:
 
                 dump = False
                 for modifier, head in enumerate(heads[1:]):
-                    scores, exprs = self.__evaluateLabel(lstm_vecs, head, modifier+1)
+                    exprs = self.__evaluateLabel(lstm_vecs, head, modifier+1)
+                    scores = exprs.value()
                     conll_sentence[modifier+1].pred_relation = self.irels[max(enumerate(scores), key=itemgetter(1))[0]]
 
                 renew_cg()
@@ -190,18 +191,23 @@ class MSTParserLSTM:
                     indicator = [scalarInput(1) if j == i else scalarInput(0) for j in range(len(conll_sentence))]
                     lstm = self.deep_lstms.transduce([concatenate([entry.vec, indicator[j]]) for j, entry in enumerate(conll_sentence)])
                     lstm_vecs.append(lstm)
-
-                scores, exprs = self.__evaluate(lstm_vecs)
+                exprs = self.__evaluate(lstm_vecs)
                 gold = [entry.parent_id for entry in conll_sentence]
-                heads = decoder.parse_proj(scores, gold if self.costaugFlag else None)
+
+                rexprs_list = []
+                for modifier, head in enumerate(gold[1:]):
+                    rexprs = self.__evaluateLabel(lstm_vecs, head, modifier+1)
+                    rexprs_list.append(rexprs)
 
                 for modifier, head in enumerate(gold[1:]):
-                    rscores, rexprs = self.__evaluateLabel(lstm_vecs, head, modifier+1)
+                    rscores = rexprs_list[modifier].value()
                     goldLabelInd = self.rels[conll_sentence[modifier+1].relation]
                     wrongLabelInd = max(((l, scr) for l, scr in enumerate(rscores) if l != goldLabelInd), key=itemgetter(1))[0]
                     if rscores[goldLabelInd] < rscores[wrongLabelInd] + 1:
                         lerrs.append(rexprs[wrongLabelInd] - rexprs[goldLabelInd])
 
+                scores = np.array([[output.scalar_value() for output in exprsRow] for exprsRow in exprs])
+                heads = decoder.parse_proj(scores, gold if self.costaugFlag else None)
                 e = sum([1 for h, g in zip(heads[1:], gold[1:]) if h != g])
                 eerrors += e
                 if e > 0:
