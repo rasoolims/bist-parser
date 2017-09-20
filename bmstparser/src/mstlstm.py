@@ -124,7 +124,7 @@ class MSTParserLSTM:
                 lstm_vecs = list()
                 for i in range(len(conll_sentence)):
                     indicator = [scalarInput(1) if j ==i else scalarInput(0) for j in range(len(conll_sentence))]
-                    lstm_vecs.append(self.deep_lstms.transduce([concatenate([entry.vec, head_vec[j], indicator[j]]) for j,entry in enumerate(conll_sentence)]))
+                    lstm_vecs.append(self.deep_lstms.transduce([concatenate([entry.vec, head_vec[j] if j==i else inputVector([0]*self.wdims), indicator[j]]) for j,entry in enumerate(conll_sentence)]))
 
                 exprs = self.__evaluate(lstm_vecs)
                 scores = np.array([[output.scalar_value() for output in exprsRow] for exprsRow in exprs])
@@ -193,7 +193,7 @@ class MSTParserLSTM:
                 lstm_vecs = list()
                 for i in range(len(conll_sentence)):
                     indicator = [scalarInput(1) if j == i else scalarInput(0) for j in range(len(conll_sentence))]
-                    lstm = self.deep_lstms.transduce([concatenate([entry.vec, head_vec[j], indicator[j]]) for j, entry in enumerate(conll_sentence)])
+                    lstm = self.deep_lstms.transduce([concatenate([entry.vec, head_vec[j] if j==i else inputVector([0]*self.wdims), indicator[j]]) for j, entry in enumerate(conll_sentence)])
                     lstm_vecs.append(lstm)
                 exprs = self.__evaluate(lstm_vecs)
                 gold = [entry.parent_id for entry in conll_sentence]
