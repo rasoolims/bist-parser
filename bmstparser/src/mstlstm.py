@@ -46,7 +46,7 @@ class MSTParserLSTM:
 
             print 'Load external embedding. Vector dimensions', self.edim
 
-        self.deep_lstms = BiRNNBuilder(self.layers, self.wdims + self.pdims + self.edim+1, self.ldims*2, self.model, VanillaLSTMBuilder)
+        self.deep_lstms = BiRNNBuilder(self.layers, 2*self.wdims + self.pdims + self.edim+1, self.ldims*2, self.model, VanillaLSTMBuilder)
         self.hidden_units = options.hidden_units
         self.hidden2_units = options.hidden2_units
 
@@ -57,6 +57,7 @@ class MSTParserLSTM:
         self.pos['*INITIAL*'] = 2
 
         self.wlookup = self.model.add_lookup_parameters((len(vocab) + 3, self.wdims))
+        self.hlookup = self.model.add_lookup_parameters((len(vocab) + 3, self.wdims))
         self.plookup = self.model.add_lookup_parameters((len(pos) + 3, self.pdims))
         self.rlookup = self.model.add_lookup_parameters((len(rels), self.rdims))
 
@@ -113,6 +114,7 @@ class MSTParserLSTM:
             for iSentence, sentence in enumerate(read_conll(conllFP)):
                 conll_sentence = [entry for entry in sentence if isinstance(entry, utils.ConllEntry)]
 
+                head_vec = [self.hlookup[int(self.vocab.get(entry.norm, 0))] if self.wdims > 0 else None for entry in conll_sentence]
                 for entry in conll_sentence:
                     wordvec = self.wlookup[int(self.vocab.get(entry.norm, 0))] if self.wdims > 0 else None
                     posvec = self.plookup[int(self.pos[entry.pos])] if self.pdims > 0 else None
@@ -122,7 +124,7 @@ class MSTParserLSTM:
                 lstm_vecs = list()
                 for i in range(len(conll_sentence)):
                     indicator = [scalarInput(1) if j ==i else scalarInput(0) for j in range(len(conll_sentence))]
-                    lstm_vecs.append(self.deep_lstms.transduce([concatenate([entry.vec, indicator[j]]) for j,entry in enumerate(conll_sentence)]))
+                    lstm_vecs.append(self.deep_lstms.transduce([concatenate([entry.vec, head_vec[j], indicator[j]]) for j,entry in enumerate(conll_sentence)]))
 
                 exprs = self.__evaluate(lstm_vecs)
                 scores = np.array([[output.scalar_value() for output in exprsRow] for exprsRow in exprs])
@@ -171,10 +173,12 @@ class MSTParserLSTM:
 
                 conll_sentence = [entry for entry in sentence if isinstance(entry, utils.ConllEntry)]
 
+                head_vec = []
                 for entry in conll_sentence:
                     c = float(self.wordsCount.get(entry.norm, 0))
                     dropFlag = (random.random() < (c/(0.25+c)))
                     wordvec = self.wlookup[int(self.vocab.get(entry.norm, 0)) if dropFlag else 0] if self.wdims > 0 else None
+                    head_vec.append(self.hlookup[int(self.vocab.get(entry.norm, 0)) if dropFlag else 0] if self.wdims > 0 else None)
                     posvec = self.plookup[int(self.pos[entry.pos])] if self.pdims > 0 else None
                     evec = None
 
@@ -189,7 +193,7 @@ class MSTParserLSTM:
                 lstm_vecs = list()
                 for i in range(len(conll_sentence)):
                     indicator = [scalarInput(1) if j == i else scalarInput(0) for j in range(len(conll_sentence))]
-                    lstm = self.deep_lstms.transduce([concatenate([entry.vec, indicator[j]]) for j, entry in enumerate(conll_sentence)])
+                    lstm = self.deep_lstms.transduce([concatenate([entry.vec, head_vec[j], indicator[j]]) for j, entry in enumerate(conll_sentence)])
                     lstm_vecs.append(lstm)
                 exprs = self.__evaluate(lstm_vecs)
                 gold = [entry.parent_id for entry in conll_sentence]
