@@ -238,18 +238,5 @@ class MSTParserLSTM:
                         lerrs = []
 
                     renew_cg()
-
-        if len(errs) > 0:
-            eerrs = (esum(errs + lerrs)) #* (1.0/(float(len(errs))))
-            eerrs.scalar_value()
-            eerrs.backward()
-            self.trainer.update()
-
-            errs = []
-            lerrs = []
-            eeloss = 0.0
-
-            renew_cg()
-
-        self.trainer.update_epoch()
+        renew_cg()
         print "Loss: ", mloss/iSentence
